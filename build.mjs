@@ -144,7 +144,35 @@ const ic = {
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg>',
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  drop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3c4 5 6.5 8.2 6.5 11.5a6.5 6.5 0 01-13 0C5.5 11.2 8 8 12 3z"/></svg>',
+  chain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="6" cy="8" r="2.6"/><circle cx="12" cy="15" r="2.6"/><circle cx="18" cy="8" r="2.6"/><path d="M7.8 9.6l2.6 3.6M13.8 13.2l2.6-3.6"/></svg>',
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20c0-9 7-16 16-16 0 9-7 16-16 16z"/><path d="M4 20C8.5 13 13.5 8.5 20 4.5"/></svg>',
 };
+
+/* Custom SVG study covers — a cohesive, on-brand alternative to reused stock photos.
+   Deep-green gradient + a soft mint icon + a small node network, distinct per study. */
+const iconInner = s => s.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+function cover(kind) {
+  const spec = {
+    stem:     { ic: ic.dna,   nodes: [[64,86],[116,66],[104,132],[58,150]] },
+    scorpion: { ic: ic.flask, nodes: [[58,78],[108,104],[70,146],[128,150]] },
+    sickle:   { ic: ic.drop,  nodes: [[68,72],[120,108],[58,142]] },
+    peptide:  { ic: ic.chain, nodes: [[48,120],[92,88],[136,120],[178,90]] },
+    phyto:    { ic: ic.leaf,  nodes: [[70,150],[112,108],[152,140]] },
+    border:   { ic: ic.globe, nodes: [[60,92],[122,78],[100,150]] },
+  }[kind] || { ic: ic.dna, nodes: [] };
+  const lines = spec.nodes.map((n, i) => i ? `<line x1="${spec.nodes[i-1][0]}" y1="${spec.nodes[i-1][1]}" x2="${n[0]}" y2="${n[1]}"/>` : '').join('');
+  const dots = spec.nodes.map(n => `<circle cx="${n[0]}" cy="${n[1]}" r="4.5"/>`).join('');
+  return `<svg class="cover" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+    + `<defs><linearGradient id="cg-${kind}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b3d2e"/><stop offset="1" stop-color="#036c48"/></linearGradient></defs>`
+    + `<rect width="400" height="250" fill="url(#cg-${kind})"/>`
+    + `<circle cx="312" cy="70" r="150" fill="#ffffff" opacity="0.045"/>`
+    + `<circle cx="70" cy="205" r="90" fill="#ffffff" opacity="0.03"/>`
+    + `<svg x="234" y="56" width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="#bff0d9" stroke-width="1.2" opacity="0.9">${iconInner(spec.ic)}</svg>`
+    + `<g stroke="#8fe3c2" stroke-width="1.5" opacity="0.6">${lines}</g>`
+    + `<g fill="#8fe3c2" opacity="0.9">${dots}</g>`
+    + `</svg>`;
+}
 
 function header(active) {
   const links = NAV.map(([label, href]) =>
@@ -184,6 +212,8 @@ function footer() {
           <li><a href="partnerships.html">Partnerships</a></li>
           <li><a href="research.html">Research</a></li>
           <li><a href="products.html">Product Portfolio</a></li>
+          <li><a href="news.html">Newsroom</a></li>
+          <li><a href="governance.html">Governance</a></li>
         </ul>
       </div>
       <div>
@@ -206,7 +236,7 @@ function footer() {
       </div>
     </div>
     <div class="foot-bottom">
-      <p class="disclaimer">This information — including product information — is intended only for residents of Nigeria. Products may have different labelling in other countries. Champions Pharmaceuticals operates in alignment with NAFDAC and Federal Ministry of Health standards.</p>
+      <p class="disclaimer">This information, including product information, is intended only for residents of Nigeria. Products may have different labelling in other countries. Champions Pharmaceuticals operates in alignment with NAFDAC and Federal Ministry of Health standards.<br><span class="foot-review">Content reviewed ${YEAR} · For institutional and healthcare-professional audiences.</span></p>
       <p>&copy; <span id="yr">${YEAR}</span> Champions Pharmaceuticals. All rights reserved.</p>
     </div>
   </div>
@@ -283,7 +313,7 @@ function write(rel, html) {
    ============================================================ */
 const home = `
 <section class="hero">
-  <img class="hero-bg" src="assets/img/hero-scientists.jpg" alt="">
+  <img class="hero-bg" src="assets/img/hero-scientists.jpg" alt="" fetchpriority="high" width="1376" height="768">
   <div class="wrap hero-inner">
     <span class="eyebrow" style="color:#8fe3c2">Institutional Pharmaceutical Partner · Est. 1993</span>
     <h1>Advancing pharmaceutical excellence through research &amp; partnership</h1>
@@ -339,11 +369,27 @@ const home = `
       <p class="lead">Advancing pharmaceutical science through systematic literature review, translational research and international collaboration.</p>
     </div>
     <div class="grid g3">
-      <a class="mcard reveal" href="research/stem-cell.html"><div class="thumb"><img src="assets/img/stem-cell.png" alt=""></div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard reveal" href="research/scorpion-venom.html"><div class="thumb"><img src="assets/img/scorpion-venom.webp" alt=""></div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Pharma-Grade Scorpion Venom — Oncology Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard reveal" href="research/sickle-cell.html"><div class="thumb"><img src="assets/img/doctors-1.webp" alt=""></div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell Disease: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/stem-cell.html"><div class="thumb">${cover('stem')}</div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/scorpion-venom.html"><div class="thumb">${cover('scorpion')}</div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Pharma-Grade Scorpion Venom — Oncology Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/sickle-cell.html"><div class="thumb">${cover('sickle')}</div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell Disease: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
     </div>
     <p style="text-align:center;margin-top:2.4rem"><a href="research.html" class="btn btn-ghost btn-lg">All research programmes ${ic.arrow}</a></p>
+  </div>
+</section>
+
+<section class="section-tint">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <span class="eyebrow">Newsroom</span>
+      <h2>Latest from Champions</h2>
+      <p class="lead">Announcements, research milestones and partnership updates from across the group.</p>
+    </div>
+    <div class="grid g3">
+      <a class="mcard reveal" href="news.html"><div class="thumb"><img src="assets/img/cell-hood-hd.jpg" alt="Laboratory research"></div><div class="body"><span class="tag">Research</span><span class="date">18 July 2026</span><h3>Six active research programmes now published</h3><p>Evidence syntheses across oncology, regenerative medicine, haematology and global-health policy.</p><span class="more">Read more ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="programs/needleless-delivery.html"><div class="thumb"><img src="assets/img/medical-tech.webp" alt="Drug-delivery technology"></div><div class="body"><span class="tag">Programmes</span><span class="date">10 July 2026</span><h3>Advancing needleless &amp; injectable delivery</h3><p>Proposed initiatives with the Federal Ministry of Health and NPHCDA to improve access to safer therapies.</p><span class="more">Read more ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="compliance.html"><div class="thumb"><img src="assets/img/doctors-2.webp" alt="Champions scientists"></div><div class="body"><span class="tag">Regulatory</span><span class="date">2 July 2026</span><h3>Continued alignment with national health standards</h3><p>Ongoing engagement with NAFDAC and the Federal Ministry of Health across the country.</p><span class="more">Read more ${ic.arrow}</span></div></a>
+    </div>
+    <p style="text-align:center;margin-top:2.4rem"><a href="news.html" class="btn btn-ghost btn-lg">Visit the newsroom ${ic.arrow}</a></p>
   </div>
 </section>
 
@@ -558,12 +604,12 @@ const research = pbanner({
   <div class="wrap">
     <div class="section-head center"><span class="eyebrow">Research studies</span><h2>Active research programmes</h2><p class="lead">Peer-reviewed evidence syntheses and translational reviews, for research and informational purposes, grounded in reproducible scientific evidence.</p></div>
     <div class="grid g3">
-      <a class="mcard" href="research/stem-cell.html"><div class="thumb"><img src="assets/img/stem-cell.png" alt=""></div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/scorpion-venom.html"><div class="thumb"><img src="assets/img/scorpion-venom.webp" alt=""></div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Scorpion Venom — Oncology Research Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/sickle-cell.html"><div class="thumb"><img src="assets/img/doctors-1.webp" alt=""></div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/peptide.html"><div class="thumb"><img src="assets/img/peptide.jpg" alt=""></div><div class="body"><span class="tag">Peptide Therapeutics</span><h3>Bioactive Peptide Therapeutics Research Initiative</h3><p>Clinical potential, safety and translational applications of bioactive peptide compounds.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/phytocannabinoid.html"><div class="thumb"><img src="assets/img/traditional-plants.jpg" alt=""></div><div class="body"><span class="tag">Phytotherapeutics</span><h3>Phytocannabinoids in Traditional Nigerian Medicine</h3><p>Scientific validation of phytocannabinoids and indigenous medicine within regulatory frameworks.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/border-securitization.html"><div class="thumb"><img src="assets/img/border-security.webp" alt=""></div><div class="body"><span class="tag">Policy &amp; Security Studies</span><h3>Border Securitization &amp; Social Construction</h3><p>Interdisciplinary analysis of contemporary border fortification and territorial governance.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/stem-cell.html"><div class="thumb">${cover('stem')}</div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/scorpion-venom.html"><div class="thumb">${cover('scorpion')}</div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Scorpion Venom — Oncology Research Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/sickle-cell.html"><div class="thumb">${cover('sickle')}</div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/peptide.html"><div class="thumb">${cover('peptide')}</div><div class="body"><span class="tag">Peptide Therapeutics</span><h3>Bioactive Peptide Therapeutics Research Initiative</h3><p>Clinical potential, safety and translational applications of bioactive peptide compounds.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/phytocannabinoid.html"><div class="thumb">${cover('phyto')}</div><div class="body"><span class="tag">Phytotherapeutics</span><h3>Phytocannabinoids in Traditional Nigerian Medicine</h3><p>Scientific validation of phytocannabinoids and indigenous medicine within regulatory frameworks.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/border-securitization.html"><div class="thumb">${cover('border')}</div><div class="body"><span class="tag">Policy &amp; Security Studies</span><h3>Border Securitization &amp; Social Construction</h3><p>Interdisciplinary analysis of contemporary border fortification and territorial governance.</p><span class="more">Read study ${ic.arrow}</span></div></a>
     </div>
   </div>
 </section>
@@ -754,13 +800,13 @@ const contact = pbanner({
       </div>
       <div class="card" style="padding:2rem">
         <form id="enquiry-form" class="form-grid" novalidate>
-          <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" required></div>
-          <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required></div>
-          <div class="field"><label for="f-org">Organisation</label><input id="f-org" name="org"></div>
+          <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" required></div>
+          <div class="field"><label for="f-org">Organisation</label><input id="f-org" name="org" autocomplete="organization"></div>
           <div class="field"><label for="f-type">Enquiry type</label><select id="f-type" name="type"><option>Partnership</option><option>Research collaboration</option><option>Product information</option><option>Distribution</option><option>General</option></select></div>
           <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="4" required></textarea></div>
           <button class="btn btn-primary btn-lg" type="submit">Send enquiry ${ic.arrow}</button>
-          <p class="form-note">Thank you — your enquiry has been recorded. Connect this form to your email service before go-live to receive submissions.</p>
+          <p class="form-note" role="status" aria-live="polite">Thank you, your enquiry has been recorded. Connect this form to your email service before go-live to receive submissions.</p>
         </form>
       </div>
     </div>
@@ -966,15 +1012,31 @@ const news = pbanner({
 }) + `
 <section>
   <div class="wrap">
+    <article class="feature reveal">
+      <div class="fmedia"><img src="assets/img/heritage-pharmacist.jpg" alt="Champions Pharmaceuticals pharmacist in a modern Nigerian pharmacy"></div>
+      <div class="fbody">
+        <span class="lead-label">Featured · Corporate</span>
+        <h2>Champions Pharmaceuticals modernises its digital presence</h2>
+        <p class="lead">A refreshed, independent corporate platform brings our research programmes, product portfolio and institutional partnerships together in one place, built for the institutions and partners we work with.</p>
+        <span class="date">22 July 2026</span>
+        <p style="margin-top:1rem"><a href="about.html" class="btn btn-primary">Read more ${ic.arrow}</a></p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="section-tint">
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">More updates</span><h2>Announcements &amp; milestones</h2></div>
     <div class="grid g3">
-      <article class="mcard"><div class="thumb"><img src="assets/img/hero-lab-hd.webp" alt=""></div><div class="body"><span class="tag">Corporate · 2026</span><h3>Champions Pharmaceuticals modernises its digital presence</h3><p>A refreshed, independent corporate platform consolidating our research programmes, product portfolio and institutional partnerships in one place.</p><a class="more" href="about.html">Read more ${ic.arrow}</a></div></article>
-      <article class="mcard"><div class="thumb"><img src="assets/img/cell-hood-hd.jpg" alt=""></div><div class="body"><span class="tag">Research</span><h3>Six active research programmes now published</h3><p>Full evidence syntheses across oncology, regenerative medicine, haematology and global-health policy are now available in our research library.</p><a class="more" href="research.html">Explore research ${ic.arrow}</a></div></article>
-      <article class="mcard"><div class="thumb"><img src="assets/img/medical-tech.webp" alt=""></div><div class="body"><span class="tag">Programmes</span><h3>Advancing needleless &amp; injectable delivery in Nigeria</h3><p>Proposed initiatives with the Federal Ministry of Health and NPHCDA to strengthen delivery infrastructure and improve access to safer therapies.</p><a class="more" href="programs/needleless-delivery.html">View programme ${ic.arrow}</a></div></article>
-      <article class="mcard"><div class="thumb"><img src="assets/img/doctors-2.webp" alt=""></div><div class="body"><span class="tag">Regulatory</span><h3>Continued alignment with national health standards</h3><p>Ongoing engagement with NAFDAC and the Federal Ministry of Health to support compliance and public-health objectives nationwide.</p><a class="more" href="compliance.html">Compliance ${ic.arrow}</a></div></article>
-      <article class="mcard"><div class="thumb"><img src="assets/img/microscope-study.jpg" alt=""></div><div class="body"><span class="tag">Partnerships</span><h3>Strengthening healthcare-infrastructure partnerships</h3><p>Collaborative work with government agencies, the military-medical corps and international organisations to improve access to safe, effective medicines.</p><a class="more" href="partnerships.html">Our partners ${ic.arrow}</a></div></article>
-      <article class="mcard"><div class="thumb"><img src="assets/img/peptide.jpg" alt=""></div><div class="body"><span class="tag">Heritage</span><h3>Three decades of service — since 1993</h3><p>From a documented founding vision in Nigeria's military era to a modern institution advancing pharmaceutical excellence and research.</p><a class="more" href="about.html">Our heritage ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/cell-hood-hd.jpg" alt="Laboratory research at Champions Pharmaceuticals"></div><div class="body"><span class="tag">Research</span><span class="date">18 July 2026</span><h3>Six active research programmes now published</h3><p>Full evidence syntheses across oncology, regenerative medicine, haematology and global-health policy are now available in our research library.</p><a class="more" href="research.html">Explore research ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/medical-tech.webp" alt="Advanced drug-delivery technology"></div><div class="body"><span class="tag">Programmes</span><span class="date">10 July 2026</span><h3>Advancing needleless &amp; injectable delivery in Nigeria</h3><p>Proposed initiatives with the Federal Ministry of Health and NPHCDA to strengthen delivery infrastructure and improve access to safer therapies.</p><a class="more" href="programs/needleless-delivery.html">View programme ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/doctors-2.webp" alt="Champions Pharmaceuticals scientists at work"></div><div class="body"><span class="tag">Regulatory</span><span class="date">2 July 2026</span><h3>Continued alignment with national health standards</h3><p>Ongoing engagement with NAFDAC and the Federal Ministry of Health to support compliance and public-health objectives nationwide.</p><a class="more" href="compliance.html">Compliance ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/microscope-study.jpg" alt="Scientist at a microscope"></div><div class="body"><span class="tag">Partnerships</span><span class="date">24 June 2026</span><h3>Strengthening healthcare-infrastructure partnerships</h3><p>Collaborative work with government agencies, the military-medical corps and international organisations to improve access to safe, effective medicines.</p><a class="more" href="partnerships.html">Our partners ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/cell-culture-hood.jpg" alt="Laboratory quality-assurance environment"></div><div class="body"><span class="tag">Governance</span><span class="date">12 June 2026</span><h3>Governance built for institutional trust</h3><p>Structured oversight and documented processes across distribution, research and partnership, held to NAFDAC and Federal Ministry of Health standards.</p><a class="more" href="governance.html">Our governance ${ic.arrow}</a></div></article>
+      <article class="mcard reveal"><div class="thumb"><img src="assets/img/hero-lab-hd.webp" alt="Champions Pharmaceuticals laboratory"></div><div class="body"><span class="tag">Heritage</span><span class="date">Since 1993</span><h3>Three decades of service to Nigerian healthcare</h3><p>From a documented founding vision in Nigeria's military era to a modern institution advancing pharmaceutical excellence and research.</p><a class="more" href="about.html">Our heritage ${ic.arrow}</a></div></article>
     </div>
-    <div class="prose" style="max-width:100%;margin-top:2.4rem"><div class="callout"><p><strong>Media &amp; press enquiries.</strong> For interviews, statements or further information, contact our team at <a href="mailto:contact@championspharmaceuticals.com">contact@championspharmaceuticals.com</a>.</p></div></div>
+    <div class="prose" style="max-width:100%;margin-top:2.4rem"><div class="callout"><p><strong>Media &amp; press enquiries.</strong> For interviews, statements or further information, contact our team at <a href="mailto:contact@championspharmaceuticals.com">contact@championspharmaceuticals.com</a>.</p></div>
   </div>
 </section>`;
 

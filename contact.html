@@ -62,13 +62,13 @@
       </div>
       <div class="card" style="padding:2rem">
         <form id="enquiry-form" class="form-grid" novalidate>
-          <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" required></div>
-          <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required></div>
-          <div class="field"><label for="f-org">Organisation</label><input id="f-org" name="org"></div>
+          <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" required></div>
+          <div class="field"><label for="f-org">Organisation</label><input id="f-org" name="org" autocomplete="organization"></div>
           <div class="field"><label for="f-type">Enquiry type</label><select id="f-type" name="type"><option>Partnership</option><option>Research collaboration</option><option>Product information</option><option>Distribution</option><option>General</option></select></div>
           <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="4" required></textarea></div>
           <button class="btn btn-primary btn-lg" type="submit">Send enquiry <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-          <p class="form-note">Thank you, your enquiry has been recorded. Connect this form to your email service before go-live to receive submissions.</p>
+          <p class="form-note" role="status" aria-live="polite">Thank you, your enquiry has been recorded. Connect this form to your email service before go-live to receive submissions.</p>
         </form>
       </div>
     </div>
@@ -91,6 +91,8 @@
           <li><a href="partnerships.html">Partnerships</a></li>
           <li><a href="research.html">Research</a></li>
           <li><a href="products.html">Product Portfolio</a></li>
+          <li><a href="news.html">Newsroom</a></li>
+          <li><a href="governance.html">Governance</a></li>
         </ul>
       </div>
       <div>
@@ -113,7 +115,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <p class="disclaimer">This information, including product information, is intended only for residents of Nigeria. Products may have different labelling in other countries. Champions Pharmaceuticals operates in alignment with NAFDAC and Federal Ministry of Health standards.</p>
+      <p class="disclaimer">This information, including product information, is intended only for residents of Nigeria. Products may have different labelling in other countries. Champions Pharmaceuticals operates in alignment with NAFDAC and Federal Ministry of Health standards.<br><span class="foot-review">Content reviewed 2026 · For institutional and healthcare-professional audiences.</span></p>
       <p>&copy; <span id="yr">2026</span> Champions Pharmaceuticals. All rights reserved.</p>
     </div>
   </div>
