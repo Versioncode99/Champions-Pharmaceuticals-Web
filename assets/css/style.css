@@ -40,6 +40,10 @@
 
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+/* Accessibility: keyboard skip-link + visible focus ring */
+.skip-link{position:absolute;left:-999px;top:0;z-index:200;background:var(--green);color:#fff;padding:.7rem 1.1rem;border-radius:0 0 var(--radius-sm) 0;font-weight:600;font-size:.9rem}
+.skip-link:focus{left:0;color:#fff}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--green);outline-offset:2px;border-radius:2px}
 body{
   font-family:var(--sans);
   color:var(--ink);
@@ -82,6 +86,10 @@ section{padding:clamp(56px,8vw,104px) 0}
 .btn-ghost:hover{border-color:var(--green);color:var(--green)}
 .btn-lg{padding:1rem 1.9rem;font-size:1.05rem}
 .btn svg{width:1.05em;height:1.05em}
+/* Solid, high-contrast secondary button for dark (green/hero) backgrounds —
+   replaces the see-through ghost so CTAs read confidently, not washed-out. */
+.btn-white{background:#fff;color:var(--green-900);border-color:#fff}
+.btn-white:hover{background:#e8f7f0;color:var(--green-900);border-color:#e8f7f0;transform:translateY(-1px)}
 .section-green .btn-ghost{color:#fff;border-color:rgba(255,255,255,.4)}
 .section-green .btn-ghost:hover{border-color:#fff;background:rgba(255,255,255,.08);color:#fff}
 
@@ -89,9 +97,9 @@ section{padding:clamp(56px,8vw,104px) 0}
 .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
 .nav-bar{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:74px}
 .brand{display:flex;align-items:center;gap:.65rem;flex-shrink:0;text-decoration:none}
-.brand-logo{height:58px;width:auto;display:block}
+.brand-logo{height:48px;width:auto;display:block}
 .brand-foot{margin-bottom:1.1rem;display:inline-block}
-.brand-foot .brand-logo{height:42px;filter:brightness(0) invert(1)}
+.brand-foot .brand-logo{height:38px;filter:brightness(0) invert(1)}
 .nav-links{display:flex;align-items:center;gap:1.9rem;list-style:none}
 .nav-links a{font-family:var(--sans);color:var(--ink);font-weight:500;font-size:.95rem;position:relative;padding:.3rem 0}
 .nav-links a:hover,.nav-links a[aria-current="page"]{color:var(--green)}
@@ -102,14 +110,14 @@ section{padding:clamp(56px,8vw,104px) 0}
 .nav-toggle svg{width:26px;height:26px}
 
 /* ---- Hero ---- */
-.hero{position:relative;background:var(--green-900);color:#fff;overflow:hidden;isolation:isolate}
+.hero{position:relative;background:var(--green-900);color:#fff;overflow:hidden;isolation:isolate;padding:0}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(11,61,46,.94) 0%,rgba(11,61,46,.78) 42%,rgba(11,61,46,.32) 100%);z-index:-1}
 .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.9}
-.hero-inner{padding:clamp(40px,4.5vw,62px) 0;max-width:620px}
-.hero h1{color:#fff;margin-bottom:.95rem;font-size:clamp(1.9rem,3.2vw,2.6rem)}
-.hero p{color:#e2ede8;font-size:clamp(1rem,1.3vw,1.12rem);max-width:520px;margin-bottom:1.5rem;line-height:1.55}
+.hero-inner{padding:clamp(40px,4.4vw,64px) 0;max-width:600px}
+.hero h1{color:#fff;margin-bottom:.85rem;font-size:clamp(1.85rem,2.9vw,2.45rem)}
+.hero p{color:#e2ede8;font-size:clamp(1rem,1.25vw,1.1rem);max-width:520px;margin-bottom:1.35rem;line-height:1.55}
 .hero-cta{display:flex;gap:.75rem;flex-wrap:wrap}
-.hero-meta{display:flex;gap:1.8rem;margin-top:1.9rem;flex-wrap:wrap}
+.hero-meta{display:flex;gap:1.8rem;margin-top:1.5rem;flex-wrap:wrap}
 .hero-meta .stat{border-left:2px solid rgba(255,255,255,.25);padding-left:.85rem}
 .hero-meta .n{font-family:var(--serif);font-size:1.45rem;color:#fff;line-height:1}
 .hero-meta .l{font-size:.78rem;color:#bcd2c8;margin-top:.25rem}
@@ -169,10 +177,10 @@ section{padding:clamp(56px,8vw,104px) 0}
 .partner .cap li::before{content:"";position:absolute;left:0;top:.55rem;width:7px;height:7px;border-radius:50%;background:var(--green)}
 
 /* ---- Page banner (interior heros) ---- */
-.pbanner{background:var(--green-900);color:#fff;position:relative;overflow:hidden;isolation:isolate}
+.pbanner{background:var(--green-900);color:#fff;position:relative;overflow:hidden;isolation:isolate;padding:0}
 .pbanner::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(11,61,46,.95),rgba(11,61,46,.7));z-index:-1}
 .pbanner-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.55}
-.pbanner-inner{padding:clamp(56px,8vw,96px) 0;max-width:760px}
+.pbanner-inner{padding:clamp(46px,6vw,74px) 0;max-width:760px}
 .pbanner .crumbs{font-size:.85rem;color:#a9c4b8;margin-bottom:1rem}
 .pbanner .crumbs a{color:#a9c4b8}.pbanner .crumbs a:hover{color:#fff}
 .pbanner h1{color:#fff;margin-bottom:1rem}
@@ -182,13 +190,22 @@ section{padding:clamp(56px,8vw,104px) 0}
 .chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
 .chip{font-size:.8rem;font-weight:500;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);color:#eaf3ef;padding:.4rem .85rem;border-radius:100px}
 
-/* Prose (long-form study content) */
+/* Prose (long-form study content) — sectioned, not a wall of text */
 .prose{max-width:760px}
 .prose h2{margin:2.6rem 0 1rem}
-.prose h3{margin:2rem 0 .7rem;color:var(--green-900)}
+.prose h3{margin:2rem 0 .7rem;color:var(--green-900);font-size:1.3rem}
+/* Top-level section: accent rule + generous space so the eye can find its place */
+.prose h2.sec{font-size:clamp(1.55rem,2.6vw,2.05rem);margin:3.4rem 0 1.1rem;padding-top:1.7rem;border-top:1px solid var(--line);position:relative}
+.prose h2.sec::before{content:"";position:absolute;top:-1px;left:0;width:58px;height:3px;background:var(--green);border-radius:2px}
+.prose h2.sec:first-child{margin-top:0;border-top:0;padding-top:0}
+.prose h2.sec:first-child::before{display:none}
+/* Inline label (Key Takeaways, Mechanism of Action, …) */
+.prose h4.sub{font-family:var(--sans);font-weight:700;font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;color:var(--green);margin:1.8rem 0 .55rem}
 .prose p{color:var(--ink-2);margin-bottom:1.1rem}
-.prose ul{margin:0 0 1.3rem 1.2rem;color:var(--ink-2)}
-.prose li{margin-bottom:.5rem}
+.prose p.lead{font-size:clamp(1.05rem,1.5vw,1.22rem);color:var(--ink);line-height:1.55;margin-bottom:1.3rem}
+.prose ul{list-style:none;margin:0 0 1.4rem;color:var(--ink-2)}
+.prose ul li{position:relative;padding:.15rem 0 .15rem 1.5rem;margin-bottom:.55rem}
+.prose ul li::before{content:"";position:absolute;left:0;top:.72em;width:7px;height:7px;border-radius:50%;background:var(--green)}
 .prose .callout{background:var(--green-tint-2);border-left:3px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:1.2rem 1.4rem;margin:1.6rem 0}
 .prose .callout p:last-child{margin:0}
 
@@ -265,10 +282,22 @@ html.js body{animation:pagefade .32s var(--ease) both}
   .nav-flag{display:none}
   .nav-cta .btn-primary{display:none}
   .brand-word .bw1{font-size:1.1rem}
+  .brand-logo{height:40px}
   .g2,.g4,.g3{grid-template-columns:1fr}
   .logo-wall{grid-template-columns:repeat(2,1fr)}
   .partner .cap{grid-template-columns:1fr}
   .foot-grid{grid-template-columns:1fr}
   .hero-meta{gap:1.4rem}
+  /* Phones: banner text was too large and hugged the left edge. Scale the
+     headline down, add breathing room, and centre the interior banners. */
+  .hero h1{font-size:clamp(1.5rem,6.4vw,1.9rem)}
+  .hero p{font-size:.98rem}
+  .hero-inner{padding:30px 0}
+  .pbanner-inner{padding:44px 0;text-align:center;max-width:none}
+  .pbanner h1{font-size:clamp(1.6rem,6.6vw,2.05rem)}
+  .pbanner p{margin-left:auto;margin-right:auto}
+  .pbanner .chips{justify-content:center}
+  .prose h2.sec{font-size:1.35rem;margin-top:2.6rem}
+  .prose h3{font-size:1.18rem}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}

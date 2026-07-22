@@ -7,10 +7,44 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const DIGESTS = 'C:/Users/Videe/AppData/Local/Temp/claude/F--Obsidian-Vaults/6e01770b-368a-4552-b7fc-604df1c5edb2/scratchpad';
+const DIGESTS = join(ROOT, 'content'); // study source lives in-repo so the build is self-contained & portable
 const YEAR = 2026;
+const SITE = 'https://www.championspharmaceuticals.com';
 
 const esc = (s) => s.replace(/&(?![a-z#0-9]+;)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* De-AI pass for long study text: kill the em-dash habit and the handful of
+   phrases that pattern-match to AI copy. We deliberately DON'T touch single
+   medical adjectives (robust/crucial/etc.) — in scientific prose those are
+   legitimate and swapping them blindly would damage accuracy. Keeps en-dash
+   ranges (1879–1886) intact. */
+function deAI(t) {
+  // em dash → sensible punctuation
+  t = t.replace(/\s*—\s*/g, ', ')        // " — " appositive → comma
+       .replace(/,\s*,/g, ',')                 // clean any doubled commas
+       .replace(/,\s*\./g, '.');               // ", ." → "."
+  const swaps = [
+    [/\bstands as a\b/gi, 'is a'],
+    [/\bstand as\b/gi, 'are'],
+    [/\bserves as a\b/gi, 'is a'],
+    [/\bserves as\b/gi, 'is'],
+    [/\bis a testament to\b/gi, 'reflects'],
+    [/\ba testament to\b/gi, 'a sign of'],
+    [/\bplays? a (vital|pivotal|crucial|key) role\b/gi, 'is central'],
+    [/\brich tapestry\b/gi, 'range'],
+    [/\bin the realm of\b/gi, 'in'],
+    [/\bit is worth noting that\b/gi, 'Notably,'],
+    [/\bit's worth noting that\b/gi, 'Notably,'],
+    [/\bnavigating the complex(ities)?\b/gi, 'working through the details'],
+    [/\bever-(evolving|changing)\b/gi, 'changing'],
+    [/\bat the forefront of\b/gi, 'leading'],
+    [/\bunderscores the importance of\b/gi, 'shows the importance of'],
+  ];
+  for (const [re, to] of swaps) t = t.replace(re, to);
+  // typographic tidy: strip stray spaces the source left before punctuation / inside brackets
+  t = t.replace(/\s+([,;.])/g, '$1').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')');
+  return t;
+}
 
 /* Convert an extracted study digest (markdown-ish text) into a rich, structured
    HTML body — preserves ALL content. Returns { chips, intro, html }. */
@@ -21,6 +55,7 @@ function digestToHtml(name) {
            .replace(/\bCannabis\b/g, 'Cannabinoid')
            .replace(/\bcannabis\b/g, 'cannabinoid')
            .replace(/\bmarijuana\b/gi, 'cannabinoid');
+  raw = deAI(raw);
   const lines = raw.split('\n').map(l => l.trim());
   const noise = /^(Home\b|Research$|.*Research Study$|.*Liquid Template|Paste into|.*font-primary|\{[%{]|.*settings\.|^[a-z0-9_]{10,}$)/i;
   const metaKeys = /^(Locations?|Scope|Timeline|Study Type|Research Area|Status|Partnership Type|Region)\s*[:\-]/i;
@@ -44,24 +79,44 @@ function digestToHtml(name) {
     body.push(ln);
   }
 
-  // build HTML: '## X' -> h2 ; but skip a short label line that is immediately followed by a heading
+  /* Build a THREE-TIER hierarchy so studies read as sectioned pages, not a wall
+     of text:
+       • a "## " heading that follows a dropped eyebrow label = a TOP section  -> <h2 class="sec">
+       • any other "## " heading                             = a subsection    -> <h3>
+       • a short, label-like line (no ending punctuation)     = an inline label -> <h4 class="sub">
+     The first substantive paragraph of each top section is promoted to a lead. */
+  const eyebrowRe = /^(Executive Summary|Key Takeaways|Research Objectives|Background &amp; Rationale|Background & Rationale|Clinical Applications|Study Goals[^.]*|References?|Conclusions?|Discussion|Key Findings|Summary)$/i;
+  const isLabel = (s) => {
+    if (s.length > 62 || s.length < 3) return false;
+    if (/[.;,?!]$/.test(s) || s.endsWith(':')) return false;
+    if (s.startsWith('- ') || s.startsWith('## ')) return false;
+    if (!/^[A-Z0-9]/.test(s)) return false;
+    if (s.split(/\s+/).length > 9) return false;
+    return true;
+  };
   const out = [];
-  let list = null;
+  let list = null, topNext = false, leadPending = false;
   const flush = () => { if (list) { out.push('<ul>' + list.join('') + '</ul>'); list = null; } };
   for (let i = 0; i < body.length; i++) {
     const ln = body[i];
     const next = body[i + 1] || '';
+    if (eyebrowRe.test(ln) && next.startsWith('## ')) { topNext = true; continue; } // eyebrow marks the next heading as a top section
     if (ln.startsWith('## ')) {
       flush();
       const h = esc(ln.slice(3).trim());
-      out.push(`<h2>${h}</h2>`);
+      if (topNext) { out.push(`<h2 class="sec">${h}</h2>`); topNext = false; leadPending = true; }
+      else { out.push(`<h3>${h}</h3>`); }
     } else if (ln.startsWith('- ')) {
-      (list ||= []).push(`<li>${esc(ln.slice(2).trim())}</li>`);
-    } else if (/^(Executive Summary|Key Takeaways|Research Objectives|Background &amp; Rationale|Background & Rationale|Clinical Applications|Study Goals|References?)$/i.test(ln) && next.startsWith('## ')) {
-      continue; // drop redundant eyebrow label right before a heading
+      // bold a leading "Label:" so key-takeaway items scan at a glance
+      const item = esc(ln.slice(2).trim()).replace(/^([^:]{3,64}):\s+/, '<strong>$1:</strong> ');
+      (list ||= []).push(`<li>${item}</li>`);
+    } else if (isLabel(ln)) {
+      flush();
+      out.push(`<h4 class="sub">${esc(ln)}</h4>`);
     } else {
       flush();
-      out.push(`<p>${esc(ln)}</p>`);
+      out.push(`<p${leadPending ? ' class="lead"' : ''}>${esc(ln)}</p>`);
+      leadPending = false;
     }
   }
   flush();
@@ -98,7 +153,7 @@ function header(active) {
   return `<header class="site-header">
   <div class="wrap nav-bar">
     <a class="brand" href="index.html" aria-label="Champions Pharmaceuticals — home">
-      <img class="brand-logo" src="assets/img/emblem-alt.png" alt="Champions Pharmaceuticals" width="230" height="60">
+      <img class="brand-logo" src="assets/img/logo-mark.png" alt="Champions Pharmaceuticals" width="300" height="100">
     </a>
     <nav aria-label="Primary">
       <ul class="nav-links" id="nav-links">${links}</ul>
@@ -118,7 +173,7 @@ function footer() {
     <div class="foot-grid">
       <div class="foot-brand">
         <a class="brand brand-foot" href="index.html" aria-label="Champions Pharmaceuticals — home">
-          <img class="brand-logo" src="assets/img/emblem-alt.png" alt="Champions Pharmaceuticals" width="230" height="60">
+          <img class="brand-logo" src="assets/img/logo-mark.png" alt="Champions Pharmaceuticals" width="300" height="100">
         </a>
         <p>Regulated pharmaceutical distribution, research and institutional partnership — advancing Nigeria's healthcare infrastructure since 1993.</p>
       </div>
@@ -158,18 +213,40 @@ function footer() {
 </footer>`;
 }
 
-function layout({ title, desc, active, body, prefix = '' }) {
+/* Organization structured data — helps Google and AI answer engines describe
+   the company correctly (a strength competitor sites have and we lacked). */
+const ORG_JSONLD = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Champions Pharmaceuticals',
+  url: SITE,
+  logo: SITE + '/assets/img/logo-mark.png',
+  foundingDate: '1993-06-04',
+  description: 'A Nigerian pharmaceutical group advancing healthcare through regulated distribution, evidence-based research and institutional partnership.',
+  address: { '@type': 'PostalAddress', addressLocality: 'Lagos', addressCountry: 'NG' },
+  email: 'contact@championspharmaceuticals.com',
+  telephone: '+234 707 032 0052',
+  areaServed: 'NG',
+});
+
+function layout({ title, desc, active, body, prefix = '', page = '' }) {
+  body = deAI(body); // final copy pass: kill em-dash habit + residual AI phrasing site-wide
+  desc = deAI(desc); // meta descriptions show in search/social — keep them human too
+  // lazy-load everything except the above-the-fold banner backgrounds
+  body = body.replace(/<img (?!class="hero-bg"|class="pbanner-bg")/g, '<img loading="lazy" ');
   // prefix handles subfolder pages (research/, programs/) that need ../ on assets & nav
-  const h = prefix ? header(active).replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : header(active);
-  const f = prefix ? footer().replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : footer();
+  const h = deAI(prefix ? header(active).replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : header(active));
+  const f = deAI(prefix ? footer().replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : footer());
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>document.documentElement.className+=' js';</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#00875A">
 <title>${title}</title>
 <meta name="description" content="${desc}">
+<link rel="canonical" href="${SITE}/${page}">
 <link rel="icon" href="${prefix}assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -177,10 +254,15 @@ function layout({ title, desc, active, body, prefix = '' }) {
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta property="og:type" content="website">
+<meta property="og:image" content="${SITE}/assets/img/hero-scientists.jpg">
+<meta property="og:url" content="${SITE}/${page}">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">${ORG_JSONLD}</script>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 ${h}
-<main>
+<main id="main">
 ${body}
 </main>
 ${f}
@@ -208,7 +290,7 @@ const home = `
     <p>Champions Pharmaceuticals supports Nigeria's healthcare system through regulated distribution, evidence-based research, and long-standing partnerships with government, military-medical and international health institutions.</p>
     <div class="hero-cta">
       <a href="research.html" class="btn btn-primary btn-lg">Explore our research</a>
-      <a href="partnerships.html" class="btn btn-ghost btn-lg">View partnerships</a>
+      <a href="partnerships.html" class="btn btn-white btn-lg">View partnerships</a>
     </div>
     <div class="hero-meta">
       <div class="stat"><div class="n">30+</div><div class="l">Years of service</div></div>
@@ -225,8 +307,8 @@ const home = `
       <div class="reveal">
         <span class="eyebrow">About Champions</span>
         <h2>A Nigerian pharmaceutical institution built on heritage and evidence</h2>
-        <p class="lead">Officially registered on 4 June 1993, Champions Pharmaceuticals emerged from a multi-generational pharmaceutical heritage to serve Nigeria's healthcare needs through regulated, documented, quality-assured medicine.</p>
-        <p>Today our work spans three connected mandates — regulated distribution, structured research and development, and public-health partnership — all held to NAFDAC and Federal Ministry of Health standards.</p>
+        <p class="lead">Registered on 4 June 1993, Champions Pharmaceuticals came out of a family pharmaceutical heritage that spans generations, and set out to serve Nigeria's healthcare needs with regulated, documented, quality-assured medicine.</p>
+        <p>Our work today runs across three connected areas: regulated distribution, structured research and development, and public-health partnership. All of it is held to NAFDAC and Federal Ministry of Health standards.</p>
         <p style="margin-top:1.4rem"><a href="about.html" class="btn btn-ghost">Read our heritage ${ic.arrow}</a></p>
       </div>
     </div>
@@ -274,7 +356,7 @@ const home = `
         <p class="lead" style="color:#cfe3da">A strategic initiative with the Federal Ministry of Health, NPHCDA and international partners to pioneer needleless delivery systems, support national vaccination campaigns and improve access to safer therapies nationwide.</p>
         <div class="hero-cta" style="margin-top:1.6rem">
           <a href="programs/needleless-delivery.html" class="btn btn-primary">Needleless delivery</a>
-          <a href="programs/injectable-delivery.html" class="btn btn-ghost">Injectable delivery</a>
+          <a href="programs/injectable-delivery.html" class="btn btn-white">Injectable delivery</a>
         </div>
       </div>
       <div class="split-media"><img src="assets/img/medical-tech.webp" alt="Advanced medical delivery technology" style="opacity:.96"></div>
@@ -318,7 +400,7 @@ const home = `
 write('index.html', layout({
   title: 'Champions Pharmaceuticals — Regulated Pharmaceutical Solutions for Nigeria',
   desc: 'Champions Pharmaceuticals supports Nigeria\'s healthcare infrastructure through regulated distribution, evidence-based research, and institutional partnerships since 1993.',
-  active: 'index.html', body: home,
+  active: 'index.html', body: home, page: '',
 }));
 
 /* helper for interior page banners */
@@ -340,14 +422,14 @@ const about = pbanner({
   crumbs: '<a href="index.html">Home</a> / About',
   h1: 'A legacy forged through dedication &amp; service',
   p: 'From a documented founding vision in Nigeria’s military era to a modern institution advancing pharmaceutical excellence — our journey spans generations of service to Nigerian healthcare.',
-  bg: 'assets/img/doctors-2.webp',
+  bg: 'assets/img/hero-lab-hd.webp',
 }) + `
 <section>
   <div class="wrap narrow">
     <span class="eyebrow">The founding vision</span>
     <h2>A bold move in uncertain times</h2>
-    <p class="lead">Champions Pharmaceuticals was founded in 1992 and officially registered on 4 June 1993 — born during Nigeria’s military era from a vision to address critical pharmaceutical supply gaps through documented, regulated medicine importation from the United Kingdom.</p>
-    <p>Leveraging deep family roots in pharmaceutical heritage, the company pioneered the introduction of a comprehensive, documented medication list to supply the Nigerian Army Medical Corps — facilitated through the late Honourable Lt. Colonel S.J. Bala, former Deputy Director of MPSN at the Nigerian Army Medical Corps, Bonny Camp, Victoria Island. The company was ordered into creation by senior military-medical leadership, establishing a founding commitment to serving Nigeria’s armed forces and national health infrastructure.</p>
+    <p class="lead">Champions Pharmaceuticals was founded in 1992 and registered on 4 June 1993, during Nigeria’s military era, to close urgent gaps in pharmaceutical supply by importing documented, regulated medicine from the United Kingdom.</p>
+    <p>Drawing on deep family roots in pharmacy, the company introduced a full, documented medication list to supply the Nigerian Army Medical Corps. That work was made possible through the late Honourable Lt. Colonel S.J. Bala, former Deputy Director of MPSN at the Nigerian Army Medical Corps, Bonny Camp, Victoria Island. Senior military-medical leadership called for the company’s creation, and serving Nigeria’s armed forces and national health infrastructure has been part of its purpose ever since.</p>
   </div>
 </section>
 
@@ -368,12 +450,12 @@ const about = pbanner({
 <section>
   <div class="wrap">
     <div class="split">
-      <div class="split-media"><img src="assets/img/microscope-study.jpg" alt="Scientific research at Champions Pharmaceuticals"></div>
+      <div class="split-media"><img src="assets/img/heritage-pharmacist.jpg" alt="A Champions Pharmaceuticals pharmacist in a modern Nigerian pharmacy"></div>
       <div>
         <span class="eyebrow">Proud heritage</span>
         <h2>A creation of the Pharmaceutical Society of Nigeria</h2>
-        <p>Champions Pharmaceuticals stands as a proud creation born from MPSN heritage — a professional designation used by licensed pharmacists registered with the Pharmaceutical Society of Nigeria, established in 1927 to maintain the highest professional ethics. This designation embodies a century-long tradition of pharmaceutical excellence, professional integrity and commitment to public health that remains central to our mission.</p>
-        <p>Our enduring commitment extends beyond commercial success to national healthcare advancement, regulatory-compliance excellence, and the preservation of a pharmaceutical heritage that has served Nigeria for over three decades.</p>
+        <p>Champions Pharmaceuticals grew out of the professional tradition of the Pharmaceutical Society of Nigeria, founded in 1927 to hold pharmacists to a clear ethical standard. That standard, close to a century old now, still shapes how we work: careful practice, honest documentation, and a duty to public health.</p>
+        <p>Our commitment goes further than commercial success. We measure ourselves against national healthcare needs, regulatory compliance, and the pharmaceutical heritage we have carried in Nigeria for more than three decades.</p>
         <p style="margin-top:1.3rem"><a href="partnerships.html" class="btn btn-ghost">Our partnerships &amp; affiliations ${ic.arrow}</a></p>
       </div>
     </div>
@@ -383,19 +465,19 @@ const about = pbanner({
 <section class="section-tint">
   <div class="wrap prose narrow">
     <span class="eyebrow">The full story</span>
-    <h2 style="margin-top:.3rem">Historical context: Nigeria's military era</h2>
-    <p>Military rule in Nigeria spanned approximately 29 of the 39 years between 1966 and 1999, characterised by successive regimes that significantly shaped the nation's political and social structures. During this transformative era, Nigeria's healthcare and pharmaceutical sectors faced unique challenges and opportunities. The family's significant medical and pharmaceutical influence, combined with deep institutional connections, positioned Champions Pharmaceuticals to address critical medication-supply needs during a period of profound institutional development.</p>
+    <h2 style="margin-top:.3rem">Nigeria's military era: the backdrop</h2>
+    <p>Nigeria was under military rule for about 29 of the 39 years between 1966 and 1999. Successive regimes reshaped the country's political and social life, and its healthcare and pharmaceutical sectors felt the strain. The family behind Champions had long-standing medical and pharmaceutical influence and deep institutional ties, and that put the company in a position to help close urgent gaps in medication supply during an unsettled period.</p>
 
-    <h2>Catalysing regulatory reform: the birth of NAFDAC</h2>
-    <p>The founding initiative occurred during an era of largely unregulated medication markets, before comprehensive government oversight of pharmaceuticals existed. Bringing documented, listed medications from the United Kingdom to Nigeria took place within a regulatory vacuum that would soon transform. Historical analysis suggests that this documented medication list and importation framework contributed to the discussions that informed the creation of NAFDAC — the National Agency for Food &amp; Drug Administration &amp; Control — established in 1993 as Nigeria's federal regulatory authority overseeing the manufacturing, importation, exportation, distribution and sale of pharmaceuticals, food, cosmetics, medical devices and chemicals.</p>
-    <div class="callout"><p>Champions Pharmaceuticals was officially registered on 4 June 1993 — the same year NAFDAC was established — marking a pivotal moment in the development of Nigerian pharmaceutical regulation.</p></div>
+    <h2>How the founding fed into NAFDAC's creation</h2>
+    <p>When Champions began, Nigeria's medication market was largely unregulated. There was no comprehensive government oversight of pharmaceuticals, so bringing a documented, listed set of medicines from the United Kingdom happened in a near-vacuum that was about to change. By most accounts, that documented list and its importation framework fed into the wider conversations that shaped NAFDAC, the National Agency for Food &amp; Drug Administration &amp; Control, set up in 1993 to oversee the manufacture, import, export, distribution and sale of medicines, food, cosmetics, medical devices and chemicals.</p>
+    <div class="callout"><p>Champions Pharmaceuticals was registered on 4 June 1993, the same year NAFDAC was established, at a turning point for pharmaceutical regulation in Nigeria.</p></div>
 
-    <h2>Proud heritage: Member of the Pharmaceutical Society of Nigeria</h2>
-    <p>Champions Pharmaceuticals stands as a proud creation born from MPSN heritage — a professional post-nominal designation used by licensed pharmacists registered with the Pharmaceutical Society of Nigeria, established in 1927 to regulate and maintain the highest professional ethics for pharmacists throughout the country. This prestigious designation embodies a century-long tradition of pharmaceutical excellence, professional integrity and commitment to public health — values that remain central to Champions Pharmaceuticals' mission today.</p>
+    <h2>Roots in the Pharmaceutical Society of Nigeria</h2>
+    <p>Champions grew directly out of the tradition of the Pharmaceutical Society of Nigeria. Founded in 1927, the Society exists to regulate practice and hold pharmacists across the country to a clear ethical standard. Nearly a century on, those values, careful practice, professional integrity and a duty to public health, still sit at the centre of how Champions works.</p>
 
-    <h2>Multi-generational heritage: from the Royal Niger Company to modern Nigeria</h2>
-    <p>The family's profound institutional connections and significant medical and pharmaceutical influence trace back through generations of Nigerian history, originating with the Royal Niger Company. This historic trading company — founded in 1886 by George Taubman Goldie — emerged from the reorganisation of the National African Company (1882), itself created from the 1879 United African Company. These early commercial enterprises helped shape the administrative and economic foundations of modern Nigeria, establishing trading networks and infrastructure that would later support the nation's healthcare and pharmaceutical sectors.</p>
-    <p>The United Africa Company of Nigeria (UACN), a Lagos-based publicly listed company, holds special significance in this heritage. The founder's late mother, Olayinka Mosunmola Kuti, played a pivotal role managing the Hospital Department — a critical division of UAC of Nigeria — as a dedicated A.J. Seward / Kingsway Chemist, devoting her professional life to ensuring Nigerians received the highest possible pharmaceutical services. Historically, UACN operated as a subsidiary of the United African Company, itself connected to Unilever Plc. Following Unilever's divestment of its stake in 1994, UACN transformed into a fully independent, publicly quoted Nigerian company — another milestone in the heritage lineage that Champions carries forward.</p>
+    <h2>A heritage from the Royal Niger Company to modern Nigeria</h2>
+    <p>The family's connections and its medical and pharmaceutical influence reach back through generations of Nigerian history to the Royal Niger Company. Founded in 1886 by George Taubman Goldie, it came out of the reorganisation of the National African Company (1882), which itself grew from the 1879 United African Company. These early trading firms helped lay the administrative and economic foundations of modern Nigeria and built the networks that would later support its healthcare and pharmaceutical sectors.</p>
+    <p>The United Africa Company of Nigeria (UACN), a Lagos-listed company, matters to this story. The founder's late mother, Olayinka Mosunmola Kuti, ran the Hospital Department at UAC of Nigeria as an A.J. Seward / Kingsway Chemist, and gave her working life to making sure Nigerians received proper pharmaceutical care. UACN was once part of the United African Company, itself tied to Unilever Plc. After Unilever sold its stake in 1994, UACN became a fully independent, publicly quoted Nigerian company, one more step in the lineage Champions carries forward.</p>
   </div>
 </section>
 
@@ -409,7 +491,7 @@ const about = pbanner({
 write('about.html', layout({
   title: 'About &amp; Heritage — Champions Pharmaceuticals',
   desc: 'The heritage of Champions Pharmaceuticals — founded 1992, registered 1993 — spanning MPSN professional roots, the UAC legacy and three decades of Nigerian healthcare service.',
-  active: 'about.html', body: about,
+  active: 'about.html', body: about, page: 'about.html',
 }));
 
 /* ============================================================
@@ -433,9 +515,48 @@ const research = pbanner({
   </div>
 </section>
 
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <span class="eyebrow">The R&amp;D programme</span>
+        <h2>What a research and development programme means at Champions</h2>
+        <p class="lead">An R&amp;D programme is a structured, systematic effort to build new knowledge, develop new products and services, or make real improvements to how things are done. Good R&amp;D resolves genuine scientific and technical uncertainty, and it sits at the centre of how Champions works.</p>
+        <p>We run it as a continuous line of work, from the first literature review through to the point where a therapy can reach a patient. Every step is documented, reproducible, and held to NAFDAC, ISO and international standards, so the evidence stands up to outside scrutiny.</p>
+      </div>
+      <div class="split-media"><img src="assets/img/microscope-study.jpg" alt="Champions Pharmaceuticals laboratory research"></div>
+    </div>
+  </div>
+</section>
+
 <section class="section-tint">
   <div class="wrap">
-    <div class="section-head center"><span class="eyebrow">Research studies</span><h2>Active research programmes</h2><p class="lead">Peer-reviewed evidence syntheses and translational reviews — for research and informational purposes, grounded in reproducible scientific evidence.</p></div>
+    <div class="section-head"><span class="eyebrow">How the work moves</span><h2>Three phases, from question to patient</h2></div>
+    <div class="grid g3">
+      <div class="card"><div class="icon">${ic.flask}</div><h3>1. Research</h3><p>We gather foundational knowledge through systematic scientific enquiry: literature review, laboratory investigation, hypothesis testing and evidence synthesis, so we understand the biology and the clinical basis of a disease before anything else.</p></div>
+      <div class="card"><div class="icon">${ic.dna}</div><h3>2. Development</h3><p>We apply what we learn to design new therapeutic products, clinical processes and treatment pathways, turning laboratory findings into candidates ready for preclinical and clinical evaluation.</p></div>
+      <div class="card"><div class="icon">${ic.shield}</div><h3>3. Refinement</h3><p>We test and refine formulations, methods and prototypes through structured trials, clinical studies and regulatory-grade validation, building the evidence needed to bring safe, effective therapies to patients.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head center"><span class="eyebrow">What defines it</span><h2>Six things that make it genuine R&amp;D</h2><p class="lead">We hold our programmes to the same criteria used to judge serious research anywhere: not activity for its own sake, but work that meets a real standard.</p></div>
+    <div class="grid g3">
+      <div class="card"><h4>Novelty</h4><p>Moving past what is already known rather than repeating it.</p></div>
+      <div class="card"><h4>Creativity</h4><p>Original scientific thinking applied to hard problems.</p></div>
+      <div class="card"><h4>Systematic method</h4><p>Structured, documented processes anyone can follow and check.</p></div>
+      <div class="card"><h4>Transferability</h4><p>Findings that are shareable and reproducible by others.</p></div>
+      <div class="card"><h4>Technical uncertainty</h4><p>Resolving real unknowns, where the outcome is not guaranteed.</p></div>
+      <div class="card"><h4>Real-world impact</h4><p>Creating measurable value for patients and the health system.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tint">
+  <div class="wrap">
+    <div class="section-head center"><span class="eyebrow">Research studies</span><h2>Active research programmes</h2><p class="lead">Peer-reviewed evidence syntheses and translational reviews, for research and informational purposes, grounded in reproducible scientific evidence.</p></div>
     <div class="grid g3">
       <a class="mcard" href="research/stem-cell.html"><div class="thumb"><img src="assets/img/stem-cell.png" alt=""></div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
       <a class="mcard" href="research/scorpion-venom.html"><div class="thumb"><img src="assets/img/scorpion-venom.webp" alt=""></div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Scorpion Venom — Oncology Research Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
@@ -448,6 +569,18 @@ const research = pbanner({
 </section>
 
 <section>
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">How we structure R&amp;D</span><h2>From discovery to patient access</h2></div>
+    <div class="grid g4">
+      <div class="card"><div class="icon">${ic.flask}</div><h3>Literature review</h3><p>Systematic review of peer-reviewed research to map what is known, where the gaps are, and which questions matter most across every therapeutic area.</p></div>
+      <div class="card"><div class="icon">${ic.globe}</div><h3>International collaboration</h3><p>Working with accredited laboratories, clinical research centres and global pharmaceutical partners to speed up development and strengthen our results.</p></div>
+      <div class="card"><div class="icon">${ic.shield}</div><h3>Regulatory alignment</h3><p>Keeping all R&amp;D in line with NAFDAC, ISO and international standards, so the work carries the documentation needed for clinical and commercial use.</p></div>
+      <div class="card"><div class="icon">${ic.hands}</div><h3>Patient access</h3><p>Turning research into real clinical pathways, physician education and access frameworks that put improvements in front of patients at scale.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section-tint">
   <div class="wrap">
     <div class="statband">
       <div><div class="n">4</div><div class="l">Active research domains</div></div>
@@ -470,7 +603,7 @@ const research = pbanner({
 write('research.html', layout({
   title: 'Research — Champions Pharmaceuticals',
   desc: 'Champions Pharmaceuticals research programmes across oncology, regenerative medicine, haematology and global-health policy — evidence-based studies grounded in reproducible science.',
-  active: 'research.html', body: research,
+  active: 'research.html', body: research, page: 'research.html',
 }));
 
 /* ============================================================
@@ -555,7 +688,7 @@ const partnerships = pbanner({
 write('partnerships.html', layout({
   title: 'Partnerships &amp; Affiliations — Champions Pharmaceuticals',
   desc: 'Champions Pharmaceuticals’ partnerships: Nigerian Army Medical Corps, NAFDAC, Federal Ministry of Health, WHO, British Government, MPSN, UACN, Phillips Consulting and Aston Rothbury.',
-  active: 'partnerships.html', body: partnerships,
+  active: 'partnerships.html', body: partnerships, page: 'partnerships.html',
 }));
 
 /* ============================================================
@@ -593,7 +726,7 @@ const products = pbanner({
 write('products.html', layout({
   title:'Product Portfolio — Champions Pharmaceuticals',
   desc:'NAFDAC-registered pharmaceutical portfolio from Champions Pharmaceuticals across ten therapeutic categories — for healthcare professionals and institutional partners.',
-  active:'products.html', body:products,
+  active:'products.html', body:products, page:'products.html',
 }));
 
 /* ============================================================
@@ -637,7 +770,7 @@ const contact = pbanner({
 write('contact.html', layout({
   title:'Contact — Champions Pharmaceuticals',
   desc:'Contact Champions Pharmaceuticals for institutional, regulatory, research and partnership enquiries. Lagos, Nigeria.',
-  active:'contact.html', body:contact,
+  active:'contact.html', body:contact, page:'contact.html',
 }));
 
 /* ============================================================
@@ -683,7 +816,7 @@ const compliance = pbanner({
 write('compliance.html', layout({
   title:'Compliance &amp; Regulatory — Champions Pharmaceuticals',
   desc:'Champions Pharmaceuticals’ governance, compliance and regulatory framework — NAFDAC-aligned quality assurance, pharmacovigilance and research integrity.',
-  active:'', body:compliance,
+  active:'', body:compliance, page:'compliance.html',
 }));
 
 /* ============================================================
@@ -709,7 +842,7 @@ ${html}
   <div class="callout" style="margin-top:2.4rem"><p><strong>Research &amp; informational use.</strong> This material is a scientific literature review provided for research and informational purposes. It does not constitute medical advice or an offer of treatment. Champions Pharmaceuticals maintains strict evidence-based standards in all guidance.</p></div>
   <p style="margin-top:2rem"><a href="../research.html" class="btn btn-ghost">${ic.arrow.replace('M5 12h14M13 6l6 6-6 6','M19 12H5M11 6l-6 6 6 6')} All research</a> &nbsp; <a href="../contact.html" class="btn btn-primary">Discuss this research ${ic.arrow}</a></p>
 </div></section>`;
-  write('research/' + file, layout({ title, desc, active: 'research.html', body, prefix: '../' }));
+  write('research/' + file, layout({ title, desc, active: 'research.html', body, prefix: '../', page: 'research/' + file }));
 }
 
 /* ---- Research studies — FULL content rendered from source digests ---- */
@@ -763,7 +896,7 @@ function programPage({ file, title, desc, crumbs, h1, intro, bg, chips, prose })
   <div class="callout" style="margin-top:2.4rem"><p><strong>Proposed partnership initiative.</strong> The programmes described are proposed initiatives supporting national healthcare objectives, subject to relevant regulatory approvals. Champions Pharmaceuticals welcomes strategic dialogue with healthcare stakeholders and government agencies.</p></div>
   <p style="margin-top:2rem"><a href="../partnerships.html" class="btn btn-ghost">Our partnerships</a> &nbsp; <a href="../contact.html" class="btn btn-primary">Contact our partnership team ${ic.arrow}</a></p>
 </div></section>`;
-  write('programs/' + file, layout({ title, desc, active: '', body, prefix: '../' }));
+  write('programs/' + file, layout({ title, desc, active: '', body, prefix: '../', page: 'programs/' + file }));
 }
 
 programPage({
@@ -848,7 +981,7 @@ const news = pbanner({
 write('news.html', layout({
   title:'Newsroom — Champions Pharmaceuticals',
   desc:'Corporate announcements, regulatory updates and partnership milestones from Champions Pharmaceuticals.',
-  active:'news.html', body:news,
+  active:'news.html', body:news, page:'news.html',
 }));
 
 /* ============================================================
@@ -886,7 +1019,7 @@ const governance = pbanner({
 write('governance.html', layout({
   title:'Leadership &amp; Governance — Champions Pharmaceuticals',
   desc:'Governance, institutional accountability and regulatory responsibility at Champions Pharmaceuticals across distribution, research and partnership.',
-  active:'', body:governance,
+  active:'', body:governance, page:'governance.html',
 }));
 
 console.log('\n— all subpages built —');
