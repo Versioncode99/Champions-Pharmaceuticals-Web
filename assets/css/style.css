@@ -87,6 +87,7 @@ section{padding:clamp(56px,8vw,104px) 0}
 .btn{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--sans);font-weight:600;font-size:.98rem;padding:.85rem 1.6rem;border-radius:var(--radius-sm);border:1.5px solid transparent;cursor:pointer;transition:all .18s var(--ease);line-height:1}
 .btn-primary{background:var(--green);color:#fff}
 .btn-primary:hover{background:var(--green-700);color:#fff;transform:translateY(-1px)}
+.btn:active{transform:translateY(1px) scale(.99)}
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
 .btn-ghost:hover{border-color:var(--green);color:var(--green)}
 .btn-lg{padding:1rem 1.9rem;font-size:1.05rem}
@@ -99,13 +100,21 @@ section{padding:clamp(56px,8vw,104px) 0}
 .section-green .btn-ghost:hover{border-color:#fff;background:rgba(255,255,255,.08);color:#fff}
 
 /* ---- Header ---- */
-.site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line);transition:box-shadow .25s var(--ease),background .25s var(--ease)}
+.site-header.scrolled{background:rgba(255,255,255,.97);box-shadow:0 6px 24px -14px rgba(20,33,28,.35)}
+/* Back-to-top */
+.to-top{position:fixed;right:clamp(14px,3vw,26px);bottom:clamp(14px,3vw,26px);z-index:60;width:46px;height:46px;border:0;border-radius:50%;background:var(--green);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .25s var(--ease),transform .25s var(--ease),background .18s var(--ease)}
+.to-top.show{opacity:1;transform:none;pointer-events:auto}
+.to-top:hover{background:var(--green-700)}
+.to-top svg{width:20px;height:20px}
+/* Reading progress */
+.read-progress{position:fixed;top:0;left:0;right:0;height:3px;background:var(--green);transform:scaleX(0);transform-origin:0 50%;z-index:70;transition:transform .1s linear}
 .nav-bar{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:74px}
 .brand{display:flex;align-items:center;gap:.65rem;flex-shrink:0;text-decoration:none}
-.brand-logo{height:48px;width:auto;display:block}
+.brand-logo{height:60px;width:auto;display:block}
 .brand-foot{margin-bottom:1.1rem;display:inline-block}
-.brand-foot .brand-logo{height:38px;filter:brightness(0) invert(1)}
-.nav-links{display:flex;align-items:center;gap:1.9rem;list-style:none}
+.brand-foot .brand-logo{height:44px;filter:brightness(0) invert(1)}
+.nav-links{display:flex;align-items:center;gap:1.5rem;list-style:none}
 .nav-links a{font-family:var(--sans);color:var(--ink);font-weight:500;font-size:.95rem;position:relative;padding:.3rem 0}
 .nav-links a:hover,.nav-links a[aria-current="page"]{color:var(--green)}
 .nav-links a[aria-current="page"]::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:2px;background:var(--green);border-radius:2px}
@@ -260,6 +269,10 @@ section{padding:clamp(56px,8vw,104px) 0}
 .field input,.field select,.field textarea{width:100%;padding:.8rem 1rem;border:1px solid var(--line-strong);border-radius:var(--radius-sm);font:inherit;font-size:.98rem;color:var(--ink);background:#fff;transition:border-color .18s var(--ease)}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-tint)}
 .form-note{display:none;margin-top:1rem;padding:.9rem 1.1rem;background:var(--green-tint);border-radius:var(--radius-sm);color:var(--green-900);font-weight:500;font-size:.95rem}
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+.field input[type=file]{padding:.55rem .7rem;background:var(--paper-2);cursor:pointer;font-size:.92rem}
+.field input[type=file]::file-selector-button{font:inherit;font-weight:600;font-size:.88rem;margin-right:.8rem;padding:.5rem .9rem;border:0;border-radius:var(--radius-sm);background:var(--green-tint);color:var(--green-900);cursor:pointer;transition:background .18s var(--ease)}
+.field input[type=file]:hover::file-selector-button{background:var(--green);color:#fff}
 
 /* ---- Footer ---- */
 .site-footer{background:var(--green-900);color:#b9cec5;padding:clamp(48px,6vw,76px) 0 30px;font-size:.92rem}

@@ -131,6 +131,7 @@ const NAV = [
   ['Products', 'products.html'],
   ['Partnerships', 'partnerships.html'],
   ['Newsroom', 'news.html'],
+  ['Careers', 'careers.html'],
   ['Contact', 'contact.html'],
 ];
 
@@ -213,6 +214,7 @@ function footer() {
           <li><a href="research.html">Research</a></li>
           <li><a href="products.html">Product Portfolio</a></li>
           <li><a href="news.html">Newsroom</a></li>
+          <li><a href="careers.html">Careers</a></li>
           <li><a href="governance.html">Governance</a></li>
         </ul>
       </div>
@@ -262,8 +264,9 @@ const ORG_JSONLD = JSON.stringify({
 function layout({ title, desc, active, body, prefix = '', page = '' }) {
   body = deAI(body); // final copy pass: kill em-dash habit + residual AI phrasing site-wide
   desc = deAI(desc); // meta descriptions show in search/social — keep them human too
-  // lazy-load everything except the above-the-fold banner backgrounds
-  body = body.replace(/<img (?!class="hero-bg"|class="pbanner-bg")/g, '<img loading="lazy" ');
+  // lazy-load + async-decode everything except the above-the-fold banner backgrounds
+  body = body.replace(/<img (?!class="hero-bg"|class="pbanner-bg")/g, '<img loading="lazy" decoding="async" ');
+  body = body.replace(/<img (class="(?:hero-bg|pbanner-bg)")/g, '<img decoding="async" $1');
   // prefix handles subfolder pages (research/, programs/) that need ../ on assets & nav
   const h = deAI(prefix ? header(active).replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : header(active));
   const f = deAI(prefix ? footer().replace(/(href|src)="(?!http|mailto|tel|#)/g, `$1="${prefix}`) : footer());
@@ -301,10 +304,12 @@ ${f}
 </html>`;
 }
 
+const PAGES = [];
 function write(rel, html) {
   const full = join(ROOT, rel);
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, html);
+  PAGES.push(rel.replace(/\\/g, '/'));
   console.log('wrote', rel, `(${(html.length / 1024).toFixed(1)}kb)`);
 }
 
@@ -369,9 +374,9 @@ const home = `
       <p class="lead">Advancing pharmaceutical science through systematic literature review, translational research and international collaboration.</p>
     </div>
     <div class="grid g3">
-      <a class="mcard reveal" href="research/stem-cell.html"><div class="thumb">${cover('stem')}</div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard reveal" href="research/scorpion-venom.html"><div class="thumb">${cover('scorpion')}</div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Pharma-Grade Scorpion Venom — Oncology Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard reveal" href="research/sickle-cell.html"><div class="thumb">${cover('sickle')}</div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell Disease: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/stem-cell.html"><div class="thumb"><img src="assets/img/stem-cell.png" alt="Stem-cell research sample"></div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/scorpion-venom.html"><div class="thumb"><img src="assets/img/scorpion-venom.webp" alt="Scorpion, source of venom-derived peptides"></div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Pharma-Grade Scorpion Venom — Oncology Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard reveal" href="research/sickle-cell.html"><div class="thumb"><img src="assets/img/res-sickle.jpg" alt="Blood samples in a haematology laboratory"></div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell Disease: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
     </div>
     <p style="text-align:center;margin-top:2.4rem"><a href="research.html" class="btn btn-ghost btn-lg">All research programmes ${ic.arrow}</a></p>
   </div>
@@ -604,12 +609,12 @@ const research = pbanner({
   <div class="wrap">
     <div class="section-head center"><span class="eyebrow">Research studies</span><h2>Active research programmes</h2><p class="lead">Peer-reviewed evidence syntheses and translational reviews, for research and informational purposes, grounded in reproducible scientific evidence.</p></div>
     <div class="grid g3">
-      <a class="mcard" href="research/stem-cell.html"><div class="thumb">${cover('stem')}</div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/scorpion-venom.html"><div class="thumb">${cover('scorpion')}</div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Scorpion Venom — Oncology Research Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/sickle-cell.html"><div class="thumb">${cover('sickle')}</div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/peptide.html"><div class="thumb">${cover('peptide')}</div><div class="body"><span class="tag">Peptide Therapeutics</span><h3>Bioactive Peptide Therapeutics Research Initiative</h3><p>Clinical potential, safety and translational applications of bioactive peptide compounds.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/phytocannabinoid.html"><div class="thumb">${cover('phyto')}</div><div class="body"><span class="tag">Phytotherapeutics</span><h3>Phytocannabinoids in Traditional Nigerian Medicine</h3><p>Scientific validation of phytocannabinoids and indigenous medicine within regulatory frameworks.</p><span class="more">Read study ${ic.arrow}</span></div></a>
-      <a class="mcard" href="research/border-securitization.html"><div class="thumb">${cover('border')}</div><div class="body"><span class="tag">Policy &amp; Security Studies</span><h3>Border Securitization &amp; Social Construction</h3><p>Interdisciplinary analysis of contemporary border fortification and territorial governance.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/stem-cell.html"><div class="thumb"><img src="assets/img/stem-cell.png" alt="Stem-cell research sample"></div><div class="body"><span class="tag">Oncology · Regenerative</span><h3>Advanced Stem Cell Research &amp; Treatment Pathways</h3><p>Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/scorpion-venom.html"><div class="thumb"><img src="assets/img/scorpion-venom.webp" alt="Scorpion, source of venom-derived peptides"></div><div class="body"><span class="tag">Oncology · Venom Pharmacology</span><h3>Scorpion Venom — Oncology Research Compound</h3><p>Bioactive peptides and Chlorotoxin (Tumor Paint) in cancer-selective therapeutics.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/sickle-cell.html"><div class="thumb"><img src="assets/img/res-sickle.jpg" alt="Blood samples in a haematology laboratory"></div><div class="body"><span class="tag">Haematology</span><h3>Sickle Cell: From Management to Functional Cure</h3><p>Gene editing, stem-cell transplantation and disease-modifying pharmacotherapy.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/peptide.html"><div class="thumb"><img src="assets/img/res-peptide.jpg" alt="Scientist pipetting peptide samples"></div><div class="body"><span class="tag">Peptide Therapeutics</span><h3>Bioactive Peptide Therapeutics Research Initiative</h3><p>Clinical potential, safety and translational applications of bioactive peptide compounds.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/phytocannabinoid.html"><div class="thumb"><img src="assets/img/traditional-plants.jpg" alt="Traditional medicinal plants"></div><div class="body"><span class="tag">Phytotherapeutics</span><h3>Phytocannabinoids in Traditional Nigerian Medicine</h3><p>Scientific validation of phytocannabinoids and indigenous medicine within regulatory frameworks.</p><span class="more">Read study ${ic.arrow}</span></div></a>
+      <a class="mcard" href="research/border-securitization.html"><div class="thumb"><img src="assets/img/border-security.webp" alt="Border landscape"></div><div class="body"><span class="tag">Policy &amp; Security Studies</span><h3>Border Securitization &amp; Social Construction</h3><p>Interdisciplinary analysis of contemporary border fortification and territorial governance.</p><span class="more">Read study ${ic.arrow}</span></div></a>
     </div>
   </div>
 </section>
@@ -763,6 +768,7 @@ const products = pbanner({
 <section>
   <div class="wrap">
     <div class="section-head"><span class="eyebrow">Product categories</span><h2>Ten therapeutic categories</h2><p class="lead">All products listed are registered with NAFDAC and comply with Nigerian pharmaceutical regulations. This information is intended for healthcare professionals and institutional partners.</p></div>
+    <div class="field" style="max-width:440px;margin-bottom:1.6rem"><label for="product-filter">Find a product</label><input id="product-filter" type="search" placeholder="Search by name or category…" autocomplete="off" spellcheck="false"></div>
     <div class="portfolio">${portfolio}</div>
     <div class="prose" style="max-width:100%;margin-top:2rem"><div class="callout"><p><strong>For healthcare professionals &amp; institutions.</strong> Product availability, pack sizes and specifications are provided on enquiry. All items are NAFDAC-registered and distributed in compliance with Nigerian pharmaceutical regulation.</p></div></div>
     <p style="margin-top:1.6rem"><a href="contact.html" class="btn btn-primary">Request product information ${ic.arrow}</a></p>
@@ -800,13 +806,17 @@ const contact = pbanner({
       </div>
       <div class="card" style="padding:2rem">
         <form id="enquiry-form" class="form-grid" novalidate>
+          <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY">
+          <input type="hidden" name="subject" value="New website enquiry — Champions Pharmaceuticals">
+          <input type="hidden" name="from_name" value="Champions Pharmaceuticals website">
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
           <div class="field"><label for="f-name">Full name</label><input id="f-name" name="name" autocomplete="name" required></div>
           <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" required></div>
           <div class="field"><label for="f-org">Organisation</label><input id="f-org" name="org" autocomplete="organization"></div>
           <div class="field"><label for="f-type">Enquiry type</label><select id="f-type" name="type"><option>Partnership</option><option>Research collaboration</option><option>Product information</option><option>Distribution</option><option>General</option></select></div>
           <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="4" required></textarea></div>
           <button class="btn btn-primary btn-lg" type="submit">Send enquiry ${ic.arrow}</button>
-          <p class="form-note" role="status" aria-live="polite">Thank you, your enquiry has been recorded. Connect this form to your email service before go-live to receive submissions.</p>
+          <p class="form-note" role="status" aria-live="polite" data-local="Thank you. Your enquiry has been recorded. Connect the email service to start receiving submissions." data-success="Thank you. Your enquiry has been sent; our team will be in touch.">Thank you. Your enquiry has been recorded.</p>
         </form>
       </div>
     </div>
@@ -817,6 +827,101 @@ write('contact.html', layout({
   title:'Contact — Champions Pharmaceuticals',
   desc:'Contact Champions Pharmaceuticals for institutional, regulatory, research and partnership enquiries. Lagos, Nigeria.',
   active:'contact.html', body:contact, page:'contact.html',
+}));
+
+/* ============================================================
+   PAGE: CAREERS
+   ============================================================ */
+const careerAreas = [
+  [ic.dist, 'Distribution &amp; Supply Chain', 'Moving NAFDAC-registered medicines safely and on time, from warehousing and logistics to inventory and last-mile delivery across the country.'],
+  [ic.flask, 'Research &amp; Development', 'Literature review, evidence synthesis and translational research across oncology, regenerative medicine, haematology and global-health policy.'],
+  [ic.shield, 'Clinical &amp; Regulatory Affairs', 'Quality assurance, pharmacovigilance, documentation and regulatory liaison that keep every product and programme compliant.'],
+  [ic.hands, 'Community Health &amp; Field Programmes', 'Field roles that connect our public-health programmes to clinics, hospitals and communities that need safer access to care.'],
+  [ic.globe, 'Operations &amp; Quality', 'Programme management, procurement, standards and the day-to-day systems that let regulated work run reliably at scale.'],
+  [ic.chain, 'Corporate, Finance &amp; Administration', 'Finance, people, partnerships and administration, the backbone that lets our clinical and distribution teams do their best work.'],
+];
+
+const careers = pbanner({
+  crumbs:'<a href="index.html">Home</a> / Careers',
+  h1:'Build Nigeria&rsquo;s pharmaceutical future with us',
+  p:'We are creating skilled, meaningful work across pharmaceutical distribution, research and community health, and investing in the Nigerian talent that will carry it forward.',
+  bg:'assets/img/careers-team.jpg',
+}) + `
+<section>
+  <div class="wrap narrow">
+    <span class="eyebrow">Why Champions</span>
+    <h2>Work that reaches real communities</h2>
+    <p class="lead">A career here is a chance to help strengthen how an entire country accesses safe, effective medicine. Our teams work at the point where regulated pharmaceutical supply, evidence-based research and public-health partnership meet.</p>
+    <p>We are a Nigerian institution with more than three decades of service, and we are growing. As our distribution network and our partnership programmes expand, so does the need for skilled, motivated people who want their work to matter.</p>
+  </div>
+</section>
+
+<section class="section-tint">
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">Where we hire</span><h2>Six areas we build careers across</h2><p class="lead">Whatever your background, there is likely a place for your skills in our work. These are the broad areas we recruit and develop people in.</p></div>
+    <div class="grid g3">
+      ${careerAreas.map(([icon, name, desc]) => `<div class="card"><div class="icon">${icon}</div><h3>${name}</h3><p>${desc}</p></div>`).join('')}
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split">
+      <div class="split-media"><img src="assets/img/careers-training.jpg" alt="Experienced scientist mentoring a colleague in the laboratory"></div>
+      <div>
+        <span class="eyebrow">Training &amp; development</span>
+        <h2>We train the people we hire</h2>
+        <p class="lead">You do not need to arrive with every skill. A large part of our work is building local capacity, so we invest in structured training, mentorship and on-the-job development.</p>
+        <p>As our pilot programmes with the Federal Ministry of Health and international partners move forward, they are expected to open new roles in logistics, clinical support, quality and community health, and we intend to train Nigerians to fill them. Skills built here stay in the country and strengthen its wider health system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-green">
+  <div class="wrap">
+    <div class="section-head center"><span class="eyebrow" style="color:#8fe3c2">What this means for Nigeria</span><h2>Jobs, skills and healthcare that stay local</h2><p class="lead" style="color:#cfe3da">Every role we create is also an investment in the country. Our growth is designed to leave lasting value behind.</p></div>
+    <div class="grid g4">
+      <div class="card" style="background:transparent;border-color:rgba(255,255,255,.16)"><h4 style="color:#fff">Job creation</h4><p style="color:#cfe3da">Skilled, regulated employment for the Nigerian public as distribution and programmes scale.</p></div>
+      <div class="card" style="background:transparent;border-color:rgba(255,255,255,.16)"><h4 style="color:#fff">Skills transfer</h4><p style="color:#cfe3da">Training and mentorship that build pharmaceutical and clinical expertise that remains in-country.</p></div>
+      <div class="card" style="background:transparent;border-color:rgba(255,255,255,.16)"><h4 style="color:#fff">Healthcare access</h4><p style="color:#cfe3da">Work that helps safer, more reliable medicine reach clinics and communities nationwide.</p></div>
+      <div class="card" style="background:transparent;border-color:rgba(255,255,255,.16)"><h4 style="color:#fff">Local capacity</h4><p style="color:#cfe3da">Stronger domestic pharmaceutical infrastructure and a healthier contribution to the economy.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="split rev">
+      <div class="split-media"><img src="assets/img/careers-team.jpg" alt="A team of young Nigerian professionals"></div>
+      <div>
+        <span class="eyebrow">Register your interest</span>
+        <h2>Send us your CV</h2>
+        <p class="lead">We are always glad to hear from talented people. Share a little about yourself and attach your CV, and our team will reach out when a suitable role opens.</p>
+        <form id="careers-form" class="form-grid" enctype="multipart/form-data" novalidate>
+          <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY">
+          <input type="hidden" name="subject" value="New career application — Champions Pharmaceuticals website">
+          <input type="hidden" name="from_name" value="Champions Pharmaceuticals careers">
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <div class="field"><label for="c-name">Full name</label><input id="c-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="c-email">Email</label><input id="c-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" required></div>
+          <div class="field"><label for="c-phone">Phone</label><input id="c-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"></div>
+          <div class="field"><label for="c-area">Area of interest</label><select id="c-area" name="area"><option>Distribution &amp; Supply Chain</option><option>Research &amp; Development</option><option>Clinical &amp; Regulatory Affairs</option><option>Community Health &amp; Field Programmes</option><option>Operations &amp; Quality</option><option>Corporate, Finance &amp; Administration</option><option>Other</option></select></div>
+          <div class="field"><label for="c-cv">Your CV <span class="muted" style="font-weight:400">(PDF or Word, up to 5&nbsp;MB)</span></label><input id="c-cv" name="attachment" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div>
+          <div class="field"><label for="c-msg">A short message</label><textarea id="c-msg" name="message" rows="4" placeholder="Tell us a little about your experience and what you are looking for…"></textarea></div>
+          <button class="btn btn-primary btn-lg" type="submit">Submit application ${ic.arrow}</button>
+          <p class="form-note" role="status" aria-live="polite" data-local="Thank you. Your application has been received. Connect the email service to start receiving CVs by email." data-success="Thank you. Your application and CV have been sent; our team will be in touch.">Thank you. Your application has been received.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>`;
+
+write('careers.html', layout({
+  title:'Careers — Champions Pharmaceuticals',
+  desc:'Build a career with Champions Pharmaceuticals. Skilled roles across distribution, research, clinical, community health and operations, with training for Nigerian talent and lasting benefit to the country.',
+  active:'careers.html', body:careers, page:'careers.html',
 }));
 
 /* ============================================================
@@ -1084,5 +1189,46 @@ write('governance.html', layout({
   active:'', body:governance, page:'governance.html',
 }));
 
+/* ============================================================
+   404 — branded not-found page (Cloudflare Pages serves /404.html)
+   ============================================================ */
+const notfound = `
+<section class="pbanner">
+  <img class="pbanner-bg" src="assets/img/hero-lab-hd.webp" alt="">
+  <div class="wrap pbanner-inner" style="text-align:center;max-width:640px;margin:0 auto">
+    <div class="crumbs">Error 404</div>
+    <h1>We couldn&rsquo;t find that page</h1>
+    <p style="margin-left:auto;margin-right:auto">The page you were looking for may have moved or no longer exists. Let&rsquo;s get you back on track.</p>
+  </div>
+</section>
+<section>
+  <div class="wrap narrow" style="text-align:center">
+    <span class="eyebrow">Popular pages</span>
+    <h2>Where would you like to go?</h2>
+    <div class="hero-cta" style="justify-content:center;margin-top:1.6rem">
+      <a href="index.html" class="btn btn-primary btn-lg">Home</a>
+      <a href="research.html" class="btn btn-ghost btn-lg">Research</a>
+      <a href="products.html" class="btn btn-ghost btn-lg">Products</a>
+      <a href="contact.html" class="btn btn-ghost btn-lg">Contact</a>
+    </div>
+  </div>
+</section>`;
+
+write('404.html', layout({
+  title: 'Page not found — Champions Pharmaceuticals',
+  desc: 'The page you were looking for could not be found.',
+  active: '', body: notfound, page: '404.html',
+}));
+
 console.log('\n— all subpages built —');
+
+/* Auto-generate sitemap.xml from the pages actually written, so it never drifts. */
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${PAGES.filter(p => p !== '404.html').map(p => `  <url><loc>${SITE}/${p === 'index.html' ? '' : p}</loc></url>`).join('\n')}
+</urlset>
+`;
+writeFileSync(join(ROOT, 'sitemap.xml'), sitemap);
+console.log('wrote sitemap.xml (' + PAGES.length + ' urls)');
+
 console.log('\n=== BUILD COMPLETE ===');
