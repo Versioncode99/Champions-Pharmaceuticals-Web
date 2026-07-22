@@ -2,12 +2,71 @@
    Champions Pharmaceuticals — static site generator
    Run: node build.mjs   → writes all .html pages from shared layout
    ============================================================ */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
+const DIGESTS = 'C:/Users/Videe/AppData/Local/Temp/claude/F--Obsidian-Vaults/6e01770b-368a-4552-b7fc-604df1c5edb2/scratchpad';
 const YEAR = 2026;
+
+const esc = (s) => s.replace(/&(?![a-z#0-9]+;)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* Convert an extracted study digest (markdown-ish text) into a rich, structured
+   HTML body — preserves ALL content. Returns { chips, intro, html }. */
+function digestToHtml(name) {
+  let raw = readFileSync(join(DIGESTS, name + '.md'), 'utf8');
+  // Compliance (vault hard rule): the word "cannabis" must never appear. Use approved framing.
+  raw = raw.replace(/Cannabis sativa/gi, 'the cannabinoid source plant')
+           .replace(/\bCannabis\b/g, 'Cannabinoid')
+           .replace(/\bcannabis\b/g, 'cannabinoid')
+           .replace(/\bmarijuana\b/gi, 'cannabinoid');
+  const lines = raw.split('\n').map(l => l.trim());
+  const noise = /^(Home\b|Research$|.*Research Study$|.*Liquid Template|Paste into|.*font-primary|\{[%{]|.*settings\.|^[a-z0-9_]{10,}$)/i;
+  const metaKeys = /^(Locations?|Scope|Timeline|Study Type|Research Area|Status|Partnership Type|Region)\s*[:\-]/i;
+
+  let intro = '', title = '';
+  const chips = [];
+  const body = [];
+  let started = false, sawTitle = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    let ln = lines[i];
+    if (!ln) continue;
+    if (i < 3 && noise.test(ln)) continue;
+    if (ln.startsWith('## ') && !sawTitle) { title = ln.slice(3).trim(); sawTitle = true; continue; }
+    if (!started && !intro && sawTitle && !metaKeys.test(ln) && ln.length > 40) { intro = ln; continue; }
+    if (!started && metaKeys.test(ln)) { chips.push(ln.replace(/\s*[:\-]\s*/, ': ')); continue; }
+    // body begins at first "## " after intro, or at Executive/Research Overview
+    if (!started && (ln.startsWith('## ') || /^(Executive Summary|Research Overview)$/i.test(ln))) started = true;
+    if (!started) continue;
+    if (noise.test(ln)) continue;
+    body.push(ln);
+  }
+
+  // build HTML: '## X' -> h2 ; but skip a short label line that is immediately followed by a heading
+  const out = [];
+  let list = null;
+  const flush = () => { if (list) { out.push('<ul>' + list.join('') + '</ul>'); list = null; } };
+  for (let i = 0; i < body.length; i++) {
+    const ln = body[i];
+    const next = body[i + 1] || '';
+    if (ln.startsWith('## ')) {
+      flush();
+      const h = esc(ln.slice(3).trim());
+      out.push(`<h2>${h}</h2>`);
+    } else if (ln.startsWith('- ')) {
+      (list ||= []).push(`<li>${esc(ln.slice(2).trim())}</li>`);
+    } else if (/^(Executive Summary|Key Takeaways|Research Objectives|Background &amp; Rationale|Background & Rationale|Clinical Applications|Study Goals|References?)$/i.test(ln) && next.startsWith('## ')) {
+      continue; // drop redundant eyebrow label right before a heading
+    } else {
+      flush();
+      out.push(`<p>${esc(ln)}</p>`);
+    }
+  }
+  flush();
+  return { chips: chips.slice(0, 6), intro: intro || title, html: out.join('\n') };
+}
 
 /* ---------- shared bits ---------- */
 const NAV = [
@@ -16,6 +75,7 @@ const NAV = [
   ['Research', 'research.html'],
   ['Products', 'products.html'],
   ['Partnerships', 'partnerships.html'],
+  ['Newsroom', 'news.html'],
   ['Contact', 'contact.html'],
 ];
 
@@ -38,8 +98,7 @@ function header(active) {
   return `<header class="site-header">
   <div class="wrap nav-bar">
     <a class="brand" href="index.html" aria-label="Champions Pharmaceuticals — home">
-      <span class="brand-mark" aria-hidden="true">C</span>
-      <span class="brand-word"><span class="bw1">Champions</span><span class="bw2">Pharmaceuticals</span></span>
+      <img class="brand-logo" src="assets/img/emblem-alt.png" alt="Champions Pharmaceuticals" width="230" height="60">
     </a>
     <nav aria-label="Primary">
       <ul class="nav-links" id="nav-links">${links}</ul>
@@ -59,8 +118,7 @@ function footer() {
     <div class="foot-grid">
       <div class="foot-brand">
         <a class="brand brand-foot" href="index.html" aria-label="Champions Pharmaceuticals — home">
-          <span class="brand-mark" aria-hidden="true">C</span>
-          <span class="brand-word"><span class="bw1">Champions</span><span class="bw2">Pharmaceuticals</span></span>
+          <img class="brand-logo" src="assets/img/emblem-alt.png" alt="Champions Pharmaceuticals" width="230" height="60">
         </a>
         <p>Regulated pharmaceutical distribution, research and institutional partnership — advancing Nigeria's healthcare infrastructure since 1993.</p>
       </div>
@@ -319,6 +377,25 @@ const about = pbanner({
         <p style="margin-top:1.3rem"><a href="partnerships.html" class="btn btn-ghost">Our partnerships &amp; affiliations ${ic.arrow}</a></p>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="section-tint">
+  <div class="wrap prose narrow">
+    <span class="eyebrow">The full story</span>
+    <h2 style="margin-top:.3rem">Historical context: Nigeria's military era</h2>
+    <p>Military rule in Nigeria spanned approximately 29 of the 39 years between 1966 and 1999, characterised by successive regimes that significantly shaped the nation's political and social structures. During this transformative era, Nigeria's healthcare and pharmaceutical sectors faced unique challenges and opportunities. The family's significant medical and pharmaceutical influence, combined with deep institutional connections, positioned Champions Pharmaceuticals to address critical medication-supply needs during a period of profound institutional development.</p>
+
+    <h2>Catalysing regulatory reform: the birth of NAFDAC</h2>
+    <p>The founding initiative occurred during an era of largely unregulated medication markets, before comprehensive government oversight of pharmaceuticals existed. Bringing documented, listed medications from the United Kingdom to Nigeria took place within a regulatory vacuum that would soon transform. Historical analysis suggests that this documented medication list and importation framework contributed to the discussions that informed the creation of NAFDAC — the National Agency for Food &amp; Drug Administration &amp; Control — established in 1993 as Nigeria's federal regulatory authority overseeing the manufacturing, importation, exportation, distribution and sale of pharmaceuticals, food, cosmetics, medical devices and chemicals.</p>
+    <div class="callout"><p>Champions Pharmaceuticals was officially registered on 4 June 1993 — the same year NAFDAC was established — marking a pivotal moment in the development of Nigerian pharmaceutical regulation.</p></div>
+
+    <h2>Proud heritage: Member of the Pharmaceutical Society of Nigeria</h2>
+    <p>Champions Pharmaceuticals stands as a proud creation born from MPSN heritage — a professional post-nominal designation used by licensed pharmacists registered with the Pharmaceutical Society of Nigeria, established in 1927 to regulate and maintain the highest professional ethics for pharmacists throughout the country. This prestigious designation embodies a century-long tradition of pharmaceutical excellence, professional integrity and commitment to public health — values that remain central to Champions Pharmaceuticals' mission today.</p>
+
+    <h2>Multi-generational heritage: from the Royal Niger Company to modern Nigeria</h2>
+    <p>The family's profound institutional connections and significant medical and pharmaceutical influence trace back through generations of Nigerian history, originating with the Royal Niger Company. This historic trading company — founded in 1886 by George Taubman Goldie — emerged from the reorganisation of the National African Company (1882), itself created from the 1879 United African Company. These early commercial enterprises helped shape the administrative and economic foundations of modern Nigeria, establishing trading networks and infrastructure that would later support the nation's healthcare and pharmaceutical sectors.</p>
+    <p>The United Africa Company of Nigeria (UACN), a Lagos-based publicly listed company, holds special significance in this heritage. The founder's late mother, Olayinka Mosunmola Kuti, played a pivotal role managing the Hospital Department — a critical division of UAC of Nigeria — as a dedicated A.J. Seward / Kingsway Chemist, devoting her professional life to ensuring Nigerians received the highest possible pharmaceutical services. Historically, UACN operated as a subsidiary of the United African Company, itself connected to Unilever Plc. Following Unilever's divestment of its stake in 1994, UACN transformed into a fully independent, publicly quoted Nigerian company — another milestone in the heritage lineage that Champions carries forward.</p>
   </div>
 </section>
 
@@ -623,160 +700,61 @@ function subBanner({ crumbs, h1, p, bg, chips }) {
   </div>
 </section>`;
 }
-function studyPage({ file, title, desc, crumbs, h1, intro, bg, chips, prose }) {
-  const body = subBanner({ crumbs, h1, p: intro, bg, chips }) +
-`<section><div class="wrap prose narrow">${prose}
+function studyPage({ file, digest, title, desc, crumbs, h1, bg, chipsExtra = [] }) {
+  const { chips, intro, html } = digestToHtml(digest);
+  const allChips = [...chipsExtra, ...chips];
+  const body = subBanner({ crumbs, h1, p: intro, bg, chips: allChips }) +
+`<section><div class="wrap prose narrow">
+${html}
   <div class="callout" style="margin-top:2.4rem"><p><strong>Research &amp; informational use.</strong> This material is a scientific literature review provided for research and informational purposes. It does not constitute medical advice or an offer of treatment. Champions Pharmaceuticals maintains strict evidence-based standards in all guidance.</p></div>
   <p style="margin-top:2rem"><a href="../research.html" class="btn btn-ghost">${ic.arrow.replace('M5 12h14M13 6l6 6-6 6','M19 12H5M11 6l-6 6 6 6')} All research</a> &nbsp; <a href="../contact.html" class="btn btn-primary">Discuss this research ${ic.arrow}</a></p>
 </div></section>`;
   write('research/' + file, layout({ title, desc, active: 'research.html', body, prefix: '../' }));
 }
 
-/* ---- Study: Scorpion Venom ---- */
-studyPage({
-  file:'scorpion-venom.html',
+/* ---- Research studies — FULL content rendered from source digests ---- */
+studyPage({ file:'scorpion-venom.html', digest:'study-scorpion',
   title:'Scorpion Venom — Oncology Research Compound · Champions Pharmaceuticals',
   desc:'A clinical and scientific review of scorpion venom-derived peptides in oncology — Chlorotoxin (Tumor Paint), ion-channel pharmacology and cancer-selective mechanisms.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Scorpion Venom',
   h1:'Scorpion venom-derived peptides: emerging therapeutic potential in oncology',
-  intro:'A comprehensive review of scorpion-venom bioactive compounds, their anticancer mechanisms, and clinical-translation pathways including Chlorotoxin (Tumor Paint) — with implications for evidence-based oncology access.',
-  bg:'assets/img/scorpion-venom.webp',
-  chips:['Timeline: 2019 – Ongoing','Study Type: Clinical &amp; Literature Review','Locations: UK · Lithuania · Nigeria','Oncology &amp; Venom Pharmacology','Active Research'],
-  prose:`<h2>Research overview</h2>
-<p>Scorpion venom represents one of nature’s most pharmacologically complex mixtures — a rich reservoir of bioactive peptides, proteins and enzymes refined over hundreds of millions of years of evolution. While historically studied for toxicology and antivenom development, a rapidly expanding body of evidence now demonstrates that specific venom-derived compounds exhibit remarkable selective cytotoxicity against cancer cells, with substantially reduced impact on healthy tissue.</p>
-<p>This initiative documents the current state of scorpion-venom science in oncology, with emphasis on apoptosis induction, ion-channel modulation in tumour biology, anti-metastatic activity, and the translational milestone of Chlorotoxin (CTX) — a 36-amino-acid peptide from the Deathstalker scorpion (<em>Leiurus quinquestriatus</em>) — which has progressed through multiple Phase 1 human clinical trials as the fluorescence-guided surgery agent Tozuleristide (BLZ-100, Tumor Paint®).</p>
-<h3>Key takeaways</h3>
-<ul>
-<li><strong>Chlorotoxin &amp; Tumor Paint:</strong> a scorpion-venom-derived peptide conjugated with a near-infrared fluorescent dye has completed four Phase 1 trials in glioma, breast and skin cancer with no dose-limiting toxicity identified and successful tumour visualisation confirmed.</li>
-<li><strong>Selective targeting:</strong> peer-reviewed studies confirm venom peptides preferentially target cancer cells by exploiting differences in membrane charge, overexpressed ion channels and tumour-specific surface receptors.</li>
-<li><strong>Multi-mechanism action:</strong> venom compounds impair cancer through apoptosis induction, cell-cycle arrest, inhibition of invasion/metastasis (MMP suppression) and disruption of oncogenic ion channels.</li>
-<li><strong>Regulatory progress:</strong> BLZ-100 (Tozuleristide) received FDA Fast Track Designation for paediatric CNS tumours and has a pivotal Phase 2/3 study underway across US cancer-surgery centres.</li>
-<li><strong>Evidentiary standards:</strong> unregulated commercial products marketed as scorpion-venom cancer treatments lack human clinical-trial evidence; Champions maintains strict evidence-based standards in all patient guidance.</li>
-</ul>
-<h3>Chlorotoxin: the translational breakthrough</h3>
-<p>Among all scorpion-venom compounds studied, Chlorotoxin represents the most clinically advanced milestone. CTX selectively binds tumour cells through interaction with matrix metalloproteinase-2 (MMP-2), Annexin A2 and chloride channels overexpressed in glioma and tumours of neuroectodermal origin. When conjugated with fluorescent dyes it becomes Tumor Paint® — enabling intraoperative, real-time visualisation of tumour margins so surgeons can achieve more complete resections while preserving healthy tissue.</p>
-<h3>Ion channels as cancer targets</h3>
-<p>Tumour cells exploit ion channels to support proliferation, adhesion, invasion and metastasis. Potassium channels (Kv1.3, KV10.1, KCa), chloride channels (ClC-3) and sodium channels are frequently overexpressed in cancer cells versus healthy tissue — creating a molecular basis for selective targeting by venom peptides evolved to interact with these channels.</p>
-<h3>Nigerian context</h3>
-<p>Nigeria faces a substantial cancer burden, with over 100,000 new cases diagnosed annually and many patients presenting at advanced stages due to limited early detection. Understanding the evidence base and access pathways for next-generation venom-derived therapies holds direct strategic relevance for Nigerian healthcare-infrastructure planning and future therapeutic access within appropriate regulatory frameworks.</p>`,
-});
+  bg:'assets/img/scorpion-venom.webp' });
 
-/* ---- Study: Stem Cell ---- */
-studyPage({
-  file:'stem-cell.html',
-  title:'Advanced Stem Cell Research &amp; Treatment Pathways · Champions Pharmaceuticals',
-  desc:'A review of mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine — therapeutic mechanisms, treatment pathways and translational potential.',
+studyPage({ file:'stem-cell.html', digest:'study-stem',
+  title:'Advanced Stem Cell Research & Treatment Pathways · Champions Pharmaceuticals',
+  desc:'Mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine — CAR-T immunotherapy, stem-cell mobilisation and regenerative approaches.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Stem Cell',
-  h1:'Advanced stem cell research &amp; treatment pathways',
-  intro:'A comprehensive investigation into mesenchymal and haematopoietic stem-cell applications in oncology and regenerative medicine — examining therapeutic mechanisms, treatment pathways and translational potential in cancer care.',
-  bg:'assets/img/stem-cell.png',
-  chips:['Oncology &amp; Regenerative Medicine','Study Type: Clinical &amp; Literature Review','Active Research','Translational Research'],
-  prose:`<h2>Research overview</h2>
-<p>Stem-cell therapy sits at the frontier of regenerative medicine — using specialised cellular therapies to support tissue regeneration and recovery. This study examines the two principal populations relevant to oncology and regenerative applications: mesenchymal stem cells (MSCs), with their immunomodulatory and tissue-repair properties, and haematopoietic stem cells (HSCs), foundational to blood and immune-system reconstitution.</p>
-<h3>Therapeutic mechanisms</h3>
-<ul>
-<li><strong>Mesenchymal stem cells:</strong> multipotent cells capable of differentiating into bone, cartilage and other tissue types, with paracrine signalling that modulates inflammation and supports repair.</li>
-<li><strong>Haematopoietic stem cells:</strong> the basis of bone-marrow and cord-blood transplantation used in the management of haematologic malignancies and marrow-failure syndromes.</li>
-<li><strong>Tumour microenvironment:</strong> research into how cellular therapeutics interact with the tumour microenvironment informs next-generation oncology strategies.</li>
-</ul>
-<h3>Translational pathways</h3>
-<p>Champions Pharmaceuticals’ work explores how the body’s own repair systems can be harnessed to address treatment-resistant conditions. Where clinically appropriate, patients may be referred to licensed international clinics operating under established regulatory frameworks — always within evidence-based standards and appropriate medical oversight.</p>
-<h3>Nigerian relevance</h3>
-<p>For Nigeria and the wider region, structured evidence review of stem-cell applications supports healthcare-infrastructure planning and physician education, contributing to informed policy discussion on the safe, regulated integration of advanced cellular therapies into future frameworks.</p>`,
-});
+  h1:'Advanced stem cell research & treatment pathways',
+  bg:'assets/img/cell-hood-hd.jpg' });
 
-/* ---- Study: Sickle Cell ---- */
-studyPage({
-  file:'sickle-cell.html',
+studyPage({ file:'sickle-cell.html', digest:'study-sickle',
   title:'Sickle Cell Disease: From Management to Functional Cure · Champions Pharmaceuticals',
-  desc:'A review of the evolving therapeutic landscape of sickle cell disease — disease-modifying pharmacotherapy, stem-cell transplantation and CRISPR-based gene editing, with focus on global equity.',
+  desc:'The evolving therapeutic landscape of sickle cell disease — disease-modifying pharmacotherapy, stem-cell transplantation and CRISPR-based gene editing, with a focus on global equity.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Sickle Cell',
   h1:'Sickle cell disease: from symptom management to functional cure',
-  intro:'A detailed investigation into gene editing, stem-cell transplantation, disease-modifying pharmacotherapy and the evolving evidence base reshaping sickle cell disease management worldwide — with critical focus on the disproportionate burden in sub-Saharan Africa.',
-  bg:'assets/img/doctors-1.webp',
-  chips:['Haematology','Study Type: Clinical &amp; Literature Review','Global · sub-Saharan Africa focus','Active Research'],
-  prose:`<h2>Research overview</h2>
-<p>Sickle cell disease (SCD) is among the most common serious inherited disorders worldwide, with the greatest burden concentrated in sub-Saharan Africa. This study maps the therapeutic landscape from conventional disease-modifying treatment through to emerging curative strategies — with critical attention to the global equity gap between where curative therapies are developed and where the disease burden actually falls.</p>
-<h3>The therapeutic spectrum</h3>
-<ul>
-<li><strong>Disease-modifying pharmacotherapy:</strong> hydroxyurea and newer agents that reduce painful crises and complications remain the accessible foundation of care.</li>
-<li><strong>Stem-cell transplantation:</strong> haematopoietic stem-cell transplantation offers a potential cure for eligible patients, constrained by donor availability and infrastructure.</li>
-<li><strong>Gene editing:</strong> CRISPR-based and gene-addition therapies have moved from concept to approved therapy in some jurisdictions, representing a functional-cure pathway — though cost and access remain formidable barriers.</li>
-</ul>
-<h3>The equity challenge</h3>
-<p>The central tension this research examines is that the populations bearing the heaviest SCD burden — particularly in Nigeria and across sub-Saharan Africa — have the least access to the most advanced curative therapies. Bridging this gap requires evidence frameworks, infrastructure planning and policy engagement, not treatment alone.</p>
-<h3>Champions’ contribution</h3>
-<p>Champions Pharmaceuticals develops evidence frameworks that connect symptom management and functional-cure pathways, supporting informed policy discussion and physician education on the safe, regulated integration of emerging therapies into Nigerian healthcare frameworks.</p>`,
-});
+  bg:'assets/img/doctors-1.webp' });
 
-/* ---- Study: Peptide ---- */
-studyPage({
-  file:'peptide.html',
+studyPage({ file:'peptide.html', digest:'study-peptide',
   title:'Bioactive Peptide Therapeutics Research Initiative · Champions Pharmaceuticals',
-  desc:'Investigating the clinical potential, safety and translational applications of bioactive peptide compounds in oncology, regenerative medicine and metabolic health.',
+  desc:'Clinical potential, safety and translational applications of bioactive peptide compounds in oncology, regenerative medicine and metabolic health.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Bioactive Peptides',
   h1:'Bioactive peptide therapeutics research initiative',
-  intro:'Investigating the clinical potential, safety and translational applications of bioactive peptide compounds in oncology, regenerative medicine and metabolic health — from FDA-approved peptide-drug conjugates to next-generation anticancer peptide vaccines and tissue-repair biologics.',
-  bg:'assets/img/peptide.jpg',
-  chips:['Oncology · Regenerative · Metabolic','Locations: UK · USA · Europe · Emerging Markets','Clinical Evidence Synthesis','Active Research'],
-  prose:`<h2>Research overview</h2>
-<p>Bioactive peptides represent one of the most rapidly expanding frontiers in modern therapeutics. These short chains of amino acids — typically two to fifty residues — occupy a unique molecular space between small-molecule drugs and large biological proteins, combining the precision targeting of biologics with the manufacturing versatility and tissue penetration of small molecules. Their receptor specificity, low systemic toxicity and biodegradability have propelled them from niche endocrinology tools into a dominant force across oncology, regenerative medicine, immunology and neurology. The global peptide-therapeutics market was valued at approximately USD 46 billion in 2024 and is projected to reach USD 100 billion by 2034.</p>
-<h3>In oncology</h3>
-<p>Bioactive peptides have evolved from purely hormonal interventions into a sophisticated arsenal of precision tools: peptide-receptor radionuclide therapy (PRRT) delivering targeted radiation into tumour cells; peptide-drug conjugates (PDCs) combining tumour-homing sequences with cytotoxic payloads; anticancer peptides (ACPs) that disrupt tumour-cell membranes; and peptide-based cancer vaccines. FDA approvals of radionuclide agents for neuroendocrine and prostate cancers represent landmark validations of the peptide-guided precision-medicine paradigm.</p>
-<h3>Beyond cancer</h3>
-<p>Peptides such as BPC-157, TB-500 and copper-peptide GHK-Cu have shown compelling preclinical and early clinical evidence for accelerating wound healing, stimulating angiogenesis and driving tissue repair. Meanwhile GLP-1 receptor agonists have fundamentally redefined the treatment of obesity, type-2 diabetes and cardiovascular risk — with emerging evidence of benefits extending to heart failure and neurodegenerative disease.</p>
-<h3>What this initiative provides</h3>
-<p>This initiative offers a comprehensive synthesis of the evolving bioactive-peptide landscape — cataloguing approved agents, active pipelines, mechanistic advances, safety profiles and access considerations — while addressing the regulatory pathways and manufacturing challenges that shape clinical practice, patient access and the future of precision oncology and regenerative medicine.</p>`,
-});
+  bg:'assets/img/peptide.jpg' });
 
-/* ---- Study: Phytocannabinoid (NEVER the word cannabis) ---- */
-studyPage({
-  file:'phytocannabinoid.html',
+studyPage({ file:'phytocannabinoid.html', digest:'study-cannabinoid',
   title:'Phytocannabinoids in Traditional Nigerian Medicine · Champions Pharmaceuticals',
-  desc:'Scientific validation of phytocannabinoids, terpenes and indigenous medicine within international regulatory frameworks — a research programme by Champions Pharmaceuticals.',
+  desc:'Scientific validation of phytocannabinoids, terpenes and indigenous medicine within international regulatory frameworks.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Phytocannabinoids',
-  h1:'Phytocannabinoids &amp; terpenes in traditional Nigerian medicine',
-  intro:'Champions Pharmaceuticals’ research programme into phytocannabinoids and terpenes within traditional Nigerian medicine — scientific validation of indigenous medicine and regenerative therapies within international regulatory frameworks.',
-  bg:'assets/img/traditional-plants.jpg',
-  chips:['Phytotherapeutics','Study Type: Literature &amp; Regulatory Review','Regulatory Science','Active Research'],
-  prose:`<h2>Research overview</h2>
-<p>This programme investigates the scientific basis of phytocannabinoids and terpenes — plant-derived compounds — and their long-standing role within traditional Nigerian medicine. The objective is scientific validation: applying systematic literature review, regulatory science and evidence synthesis to indigenous therapeutic practices, situating them accurately within international regulatory frameworks.</p>
-<h3>Scientific scope</h3>
-<ul>
-<li><strong>Phytochemistry:</strong> characterising the bioactive phytocannabinoid and terpene profiles of relevant botanical sources and their documented pharmacological activity.</li>
-<li><strong>Indigenous medicine:</strong> reviewing the historical and ethnopharmacological use of these compounds within Nigerian traditional medicine.</li>
-<li><strong>Regulatory science:</strong> mapping the international regulatory pathways governing phytotherapeutic research, ensuring all work proceeds within appropriate legal and ethical frameworks.</li>
-</ul>
-<h3>Regulatory-first approach</h3>
-<p>Champions Pharmaceuticals conducts this research strictly within international regulatory frameworks and appropriate approvals. The programme is a scientific and evidence-based initiative — validation, documentation and regulatory-science analysis — not a commercial or clinical offering.</p>
-<h3>Nigerian relevance</h3>
-<p>Scientific validation of indigenous phytotherapeutics contributes to the evidence base for regulatory science and healthcare-policy discussion in Nigeria, supporting the responsible, documented study of the nation’s botanical medical heritage within modern standards.</p>`,
-});
+  h1:'Phytocannabinoids & terpenes in traditional Nigerian medicine',
+  bg:'assets/img/traditional-plants.jpg' });
 
-/* ---- Study: Border Securitization ---- */
-studyPage({
-  file:'border-securitization.html',
-  title:'Border Securitization &amp; Social Construction · Champions Pharmaceuticals',
+studyPage({ file:'border-securitization.html', digest:'study-border',
+  title:'Border Securitization & Social Construction · Champions Pharmaceuticals',
   desc:'An interdisciplinary investigation into contemporary border fortification — securitization theory, social construction and the human dimensions of borderland communities.',
   crumbs:'<a href="../index.html">Home</a> / <a href="../research.html">Research</a> / Border Studies',
-  h1:'Border securitization &amp; the social construction of territory',
-  intro:'A multi-disciplinary investigation into the forces shaping contemporary border fortification — examining securitization theory, social construction, cross-border cooperation and the human dimensions of borderland communities within evolving geopolitical frameworks.',
-  bg:'assets/img/border-security.webp',
-  chips:['Political Science &amp; Security Studies','Scope: Global','Timeline: 2024 – Ongoing','Multi-Disciplinary Review'],
-  prose:`<h2>Research overview</h2>
-<p>Border securitization — the political, institutional and physical process by which borders are constructed as security zones requiring fortification, surveillance and enforcement — represents one of the defining geopolitical phenomena of the early twenty-first century. As of 2024, approximately 12% of all international borders and 40% of all countries feature some form of physical fortification, a dramatic increase from fewer than a dozen border walls at the end of the Cold War.</p>
-<h3>An interdisciplinary lens</h3>
-<p>Border studies spans political science, sociology, human geography, legal theory and cultural studies. Contemporary research has moved well beyond treating borders as fixed, objective lines on a map; scholars now understand borders as dynamic, socially constructed institutions that shape — and are shaped by — identity, authority and mobility.</p>
-<h3>Areas of analysis</h3>
-<ul>
-<li><strong>Securitization theory:</strong> how borders become framed as security objects requiring exceptional measures.</li>
-<li><strong>Social construction:</strong> how territorial boundaries acquire meaning and shape identity formation in borderland communities.</li>
-<li><strong>Cross-border cooperation:</strong> the countervailing dynamics of regional integration and cooperation.</li>
-<li><strong>Human dimensions:</strong> the lived experience of communities within evolving geopolitical frameworks.</li>
-</ul>
-<h3>Relevance</h3>
-<p>This research contributes evidence-based analysis to policy discussion on sovereignty, mobility and regional integration — an area of growing significance for governance and public policy globally.</p>`,
-});
+  h1:'Border securitization & the social construction of territory',
+  bg:'assets/img/border-security.webp' });
+
 
 /* ---- Program pages ---- */
 function programPage({ file, title, desc, crumbs, h1, intro, bg, chips, prose }) {
@@ -843,6 +821,73 @@ programPage({
 <h3>Strengthening Nigeria’s healthcare future</h3>
 <p>Through collaboration with the Federal Ministry of Health, the NPHCDA and international health partners, Champions Pharmaceuticals aims to strengthen injectable-medicine delivery programmes and improve access to critical therapies nationwide. Champions’ efforts align with the public-health objectives supported by the World Health Organization and other international health partners.</p>`,
 });
+
+/* ============================================================
+   PAGE: NEWSROOM
+   ============================================================ */
+const news = pbanner({
+  crumbs:'<a href="index.html">Home</a> / Newsroom',
+  h1:'Newsroom',
+  p:'Corporate announcements, regulatory updates and partnership milestones from Champions Pharmaceuticals.',
+  bg:'assets/img/research-tablet.jpg',
+}) + `
+<section>
+  <div class="wrap">
+    <div class="grid g3">
+      <article class="mcard"><div class="thumb"><img src="assets/img/hero-lab-hd.webp" alt=""></div><div class="body"><span class="tag">Corporate · 2026</span><h3>Champions Pharmaceuticals modernises its digital presence</h3><p>A refreshed, independent corporate platform consolidating our research programmes, product portfolio and institutional partnerships in one place.</p><a class="more" href="about.html">Read more ${ic.arrow}</a></div></article>
+      <article class="mcard"><div class="thumb"><img src="assets/img/cell-hood-hd.jpg" alt=""></div><div class="body"><span class="tag">Research</span><h3>Six active research programmes now published</h3><p>Full evidence syntheses across oncology, regenerative medicine, haematology and global-health policy are now available in our research library.</p><a class="more" href="research.html">Explore research ${ic.arrow}</a></div></article>
+      <article class="mcard"><div class="thumb"><img src="assets/img/medical-tech.webp" alt=""></div><div class="body"><span class="tag">Programmes</span><h3>Advancing needleless &amp; injectable delivery in Nigeria</h3><p>Proposed initiatives with the Federal Ministry of Health and NPHCDA to strengthen delivery infrastructure and improve access to safer therapies.</p><a class="more" href="programs/needleless-delivery.html">View programme ${ic.arrow}</a></div></article>
+      <article class="mcard"><div class="thumb"><img src="assets/img/doctors-2.webp" alt=""></div><div class="body"><span class="tag">Regulatory</span><h3>Continued alignment with national health standards</h3><p>Ongoing engagement with NAFDAC and the Federal Ministry of Health to support compliance and public-health objectives nationwide.</p><a class="more" href="compliance.html">Compliance ${ic.arrow}</a></div></article>
+      <article class="mcard"><div class="thumb"><img src="assets/img/microscope-study.jpg" alt=""></div><div class="body"><span class="tag">Partnerships</span><h3>Strengthening healthcare-infrastructure partnerships</h3><p>Collaborative work with government agencies, the military-medical corps and international organisations to improve access to safe, effective medicines.</p><a class="more" href="partnerships.html">Our partners ${ic.arrow}</a></div></article>
+      <article class="mcard"><div class="thumb"><img src="assets/img/peptide.jpg" alt=""></div><div class="body"><span class="tag">Heritage</span><h3>Three decades of service — since 1993</h3><p>From a documented founding vision in Nigeria's military era to a modern institution advancing pharmaceutical excellence and research.</p><a class="more" href="about.html">Our heritage ${ic.arrow}</a></div></article>
+    </div>
+    <div class="prose" style="max-width:100%;margin-top:2.4rem"><div class="callout"><p><strong>Media &amp; press enquiries.</strong> For interviews, statements or further information, contact our team at <a href="mailto:contact@championspharmaceuticals.com">contact@championspharmaceuticals.com</a>.</p></div></div>
+  </div>
+</section>`;
+
+write('news.html', layout({
+  title:'Newsroom — Champions Pharmaceuticals',
+  desc:'Corporate announcements, regulatory updates and partnership milestones from Champions Pharmaceuticals.',
+  active:'news.html', body:news,
+}));
+
+/* ============================================================
+   PAGE: LEADERSHIP & GOVERNANCE
+   ============================================================ */
+const governance = pbanner({
+  crumbs:'<a href="index.html">Home</a> / Governance',
+  h1:'Leadership &amp; governance',
+  p:'Structured oversight, institutional accountability and regulatory responsibility across every part of our operations.',
+  bg:'assets/img/cell-hood-hd.jpg',
+}) + `
+<section>
+  <div class="wrap">
+    <div class="section-head"><span class="eyebrow">How we operate</span><h2>Governance built for institutional trust</h2><p class="lead">Champions Pharmaceuticals operates as a Nigerian pharmaceutical group across regulated distribution, research and development, and public-health partnership — each held to documented standards and regulatory oversight.</p></div>
+    <div class="grid g3">
+      <div class="card"><div class="icon">${ic.shield}</div><h3>Regulatory responsibility</h3><p>NAFDAC-aligned quality assurance and compliance embedded across the distribution chain and every research activity.</p></div>
+      <div class="card"><div class="icon">${ic.hands}</div><h3>Institutional accountability</h3><p>Structured oversight and documented processes, with engagement across government, military-medical and international health bodies.</p></div>
+      <div class="card"><div class="icon">${ic.flask}</div><h3>Research integrity</h3><p>Evidence-based standards, reproducible methodology and alignment with NAFDAC, ISO and international regulatory frameworks.</p></div>
+    </div>
+  </div>
+</section>
+<section class="section-tint">
+  <div class="wrap prose narrow">
+    <h2>Our operating structure</h2>
+    <p>The group's work spans three connected mandates — regulated pharmaceutical distribution, structured research and development, and public-health partnership. Each mandate operates under documented governance and regulatory alignment, ensuring accountability from procurement through to patient access.</p>
+    <ul>
+      <li><strong>Distribution &amp; supply</strong> — regulated networks delivering NAFDAC-registered medicines to healthcare institutions nationwide.</li>
+      <li><strong>Research &amp; development</strong> — structured investigation across oncology, regenerative medicine, haematology and global-health policy.</li>
+      <li><strong>Partnership &amp; public health</strong> — collaboration with government agencies, the military-medical corps and international organisations.</li>
+    </ul>
+    <div class="callout"><p><strong>Leadership enquiries.</strong> Details of our leadership and governance structure are available to verified institutional and investment partners on request via <a href="contact.html">our contact team</a>.</p></div>
+  </div>
+</section>`;
+
+write('governance.html', layout({
+  title:'Leadership &amp; Governance — Champions Pharmaceuticals',
+  desc:'Governance, institutional accountability and regulatory responsibility at Champions Pharmaceuticals across distribution, research and partnership.',
+  active:'', body:governance,
+}));
 
 console.log('\n— all subpages built —');
 console.log('\n=== BUILD COMPLETE ===');

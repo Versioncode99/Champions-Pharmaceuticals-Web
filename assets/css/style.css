@@ -89,15 +89,9 @@ section{padding:clamp(56px,8vw,104px) 0}
 .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
 .nav-bar{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:74px}
 .brand{display:flex;align-items:center;gap:.65rem;flex-shrink:0;text-decoration:none}
-.brand img{height:38px;width:auto}
-.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--green);color:#fff;font-family:var(--serif);font-weight:600;font-size:1.5rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.brand-word{display:flex;flex-direction:column;line-height:1}
-.brand-word .bw1{font-family:var(--serif);font-size:1.22rem;font-weight:600;color:var(--ink);letter-spacing:-.01em}
-.brand-word .bw2{font-family:var(--sans);font-size:.6rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--green);margin-top:2px}
-.brand-foot .brand-mark{background:#fff;color:var(--green-900)}
-.brand-foot .brand-word .bw1{color:#fff}
-.brand-foot .brand-word .bw2{color:#8fe3c2}
-.brand-foot{margin-bottom:1.1rem}
+.brand-logo{height:58px;width:auto;display:block}
+.brand-foot{margin-bottom:1.1rem;display:inline-block}
+.brand-foot .brand-logo{height:42px;filter:brightness(0) invert(1)}
 .nav-links{display:flex;align-items:center;gap:1.9rem;list-style:none}
 .nav-links a{font-family:var(--sans);color:var(--ink);font-weight:500;font-size:.95rem;position:relative;padding:.3rem 0}
 .nav-links a:hover,.nav-links a[aria-current="page"]{color:var(--green)}
@@ -111,14 +105,14 @@ section{padding:clamp(56px,8vw,104px) 0}
 .hero{position:relative;background:var(--green-900);color:#fff;overflow:hidden;isolation:isolate}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(11,61,46,.94) 0%,rgba(11,61,46,.78) 42%,rgba(11,61,46,.32) 100%);z-index:-1}
 .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.9}
-.hero-inner{padding:clamp(72px,11vw,132px) 0;max-width:760px}
-.hero h1{color:#fff;margin-bottom:1.3rem}
-.hero p{color:#e2ede8;font-size:clamp(1.1rem,1.7vw,1.35rem);max-width:600px;margin-bottom:2rem}
-.hero-cta{display:flex;gap:.9rem;flex-wrap:wrap}
-.hero-meta{display:flex;gap:2.2rem;margin-top:2.6rem;flex-wrap:wrap}
-.hero-meta .stat{border-left:2px solid rgba(255,255,255,.25);padding-left:.95rem}
-.hero-meta .n{font-family:var(--serif);font-size:1.7rem;color:#fff;line-height:1}
-.hero-meta .l{font-size:.82rem;color:#bcd2c8;margin-top:.3rem}
+.hero-inner{padding:clamp(40px,4.5vw,62px) 0;max-width:620px}
+.hero h1{color:#fff;margin-bottom:.95rem;font-size:clamp(1.9rem,3.2vw,2.6rem)}
+.hero p{color:#e2ede8;font-size:clamp(1rem,1.3vw,1.12rem);max-width:520px;margin-bottom:1.5rem;line-height:1.55}
+.hero-cta{display:flex;gap:.75rem;flex-wrap:wrap}
+.hero-meta{display:flex;gap:1.8rem;margin-top:1.9rem;flex-wrap:wrap}
+.hero-meta .stat{border-left:2px solid rgba(255,255,255,.25);padding-left:.85rem}
+.hero-meta .n{font-family:var(--serif);font-size:1.45rem;color:#fff;line-height:1}
+.hero-meta .l{font-size:.78rem;color:#bcd2c8;margin-top:.25rem}
 
 /* ---- Cards / grids ---- */
 .grid{display:grid;gap:1.5rem}
@@ -244,9 +238,12 @@ section{padding:clamp(56px,8vw,104px) 0}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.14);margin-top:2.6rem;padding-top:1.6rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;color:#8aa79c;font-size:.82rem;line-height:1.6}
 .disclaimer{max-width:760px}
 
-/* ---- Reveal on scroll (only hides when JS is active) ---- */
-html.js .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+/* ---- Reveal on scroll — gentle, no layout jump (only when JS active) ---- */
+html.js .reveal{opacity:0;transform:translateY(10px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
 html.js .reveal.in{opacity:1;transform:none}
+/* Page fade-in — smooths the "weird" jump between pages */
+html.js body{animation:pagefade .32s var(--ease) both}
+@keyframes pagefade{from{opacity:0}to{opacity:1}}
 
 /* ---- Responsive ---- */
 @media(max-width:960px){
