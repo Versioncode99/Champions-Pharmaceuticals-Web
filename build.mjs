@@ -3,6 +3,7 @@
    Run: node build.mjs   → writes all .html pages from shared layout
    ============================================================ */
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,6 +13,9 @@ const YEAR = 2026;
 const SITE = 'https://www.championspharmaceuticals.com';
 const WEB3FORMS_KEY = (process.env.WEB3FORMS_ACCESS_KEY || '').trim();
 const FORMS_READY = Boolean(WEB3FORMS_KEY && !WEB3FORMS_KEY.startsWith('YOUR_'));
+const assetVersion = (path) => createHash('sha256').update(readFileSync(join(ROOT, path))).digest('hex').slice(0, 12);
+const CSS_VERSION = assetVersion('assets/css/style.css');
+const JS_VERSION = assetVersion('assets/js/main.js');
 
 const esc = (s) => s.replace(/&(?![a-z#0-9]+;)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -288,7 +292,7 @@ function layout({ title, desc, active, body, prefix = '', page = '' }) {
 <link rel="icon" href="${prefix}assets/img/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="${prefix}assets/css/style.css">
+<link rel="stylesheet" href="${prefix}assets/css/style.css?v=${CSS_VERSION}">
 <meta property="og:title" content="${title}">
 <meta property="og:description" content="${desc}">
 <meta property="og:type" content="website">
@@ -304,7 +308,7 @@ ${h}
 ${body}
 </main>
 ${f}
-<script src="${prefix}assets/js/main.js"></script>
+<script src="${prefix}assets/js/main.js?v=${JS_VERSION}"></script>
 </body>
 </html>`;
 }
