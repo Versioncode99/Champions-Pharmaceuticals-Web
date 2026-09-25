@@ -302,9 +302,3 @@ Balanced Assessment: This study presents evidence that is critical of both exces
 Academic Context: Border studies is a politically contested research field. Readers are encouraged to engage with the primary academic sources cited and to form their own evidence-based assessments of complex policy questions. This synthesis aims to facilitate informed discussion, not to substitute for it.
 No Liability: Champions Pharmaceuticals, research contributors, and affiliated individuals assume no liability for policy decisions made on the basis of this documentation. All policy decisions should be informed by comprehensive evidence review conducted by appropriately qualified experts with access to full contextual information.
 Last Updated: February 2026
-"name": "Border Study",
-"tag": "section",
-"class": "champions-research-study-section",
-"settings": [],
-"presets": [
-"name": "Border Securitization Research Study"

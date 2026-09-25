@@ -9,7 +9,7 @@
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
     links.querySelectorAll('a').forEach(function (a) {
-      a.addEventListener('click', function () { links.classList.remove('open'); });
+      a.addEventListener('click', function () { links.classList.remove('open'); toggle.setAttribute('aria-expanded', 'false'); });
     });
   }
 
@@ -32,7 +32,7 @@
   // To receive submissions by email, create a free Web3Forms access key for
   // contact@championspharmaceuticals.com and paste it into each form's hidden
   // access_key field. Web3Forms handles file attachments (the CV) natively.
-  // Until a real key is set, submissions show a local confirmation only.
+  // Unconfigured forms are hidden by the build and show an email alternative.
   function wireForm(id) {
     var form = document.getElementById(id);
     if (!form) return;
@@ -42,11 +42,15 @@
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
+      var cv = form.querySelector('input[type="file"]');
+      if (cv && cv.files.length) {
+        if (!/\.(pdf|doc|docx)$/i.test(cv.files[0].name)) { say('Please attach a PDF or Word CV.'); return; }
+        if (cv.files[0].size > 5 * 1024 * 1024) { say('Please attach a CV smaller than 5 MB.'); return; }
+      }
       var keyEl = form.querySelector('input[name="access_key"]');
       var key = keyEl ? (keyEl.value || '').trim() : '';
       if (!key || key.indexOf('YOUR_') === 0) {
-        say(note && note.getAttribute('data-local') || 'Thank you. Your submission has been recorded. Connect the email service to receive submissions.');
-        form.reset();
+        say('The online form is unavailable. Please email contact@championspharmaceuticals.com directly.');
         return;
       }
       var label = btn ? btn.textContent : '';
@@ -114,21 +118,25 @@
   var pfilter = document.getElementById('product-filter');
   if (pfilter) {
     var cats = [].slice.call(document.querySelectorAll('.pcat'));
+    var empty = document.getElementById('product-empty');
     pfilter.addEventListener('input', function () {
       var q = pfilter.value.trim().toLowerCase();
+      var matches = 0;
       cats.forEach(function (cat) {
         var rows = [].slice.call(cat.querySelectorAll('tbody tr, tr'));
+        var catHit = q === '' || cat.querySelector('summary').textContent.toLowerCase().indexOf(q) !== -1;
         var anyMatch = q === '';
         rows.forEach(function (r) {
-          var hit = q === '' || r.textContent.toLowerCase().indexOf(q) !== -1;
+          var hit = catHit || r.textContent.toLowerCase().indexOf(q) !== -1;
           r.style.display = hit ? '' : 'none';
           if (hit && q) anyMatch = true;
         });
-        var catHit = q === '' || cat.querySelector('summary').textContent.toLowerCase().indexOf(q) !== -1;
         cat.style.display = (anyMatch || catHit) ? '' : 'none';
+        if (anyMatch || catHit) matches++;
         if (q && (anyMatch || catHit)) cat.open = true;
         if (!q) cat.open = false;
       });
+      if (empty) empty.hidden = matches > 0;
     });
   }
 

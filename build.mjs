@@ -10,6 +10,8 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIGESTS = join(ROOT, 'content'); // study source lives in-repo so the build is self-contained & portable
 const YEAR = 2026;
 const SITE = 'https://www.championspharmaceuticals.com';
+const WEB3FORMS_KEY = (process.env.WEB3FORMS_ACCESS_KEY || '').trim();
+const FORMS_READY = Boolean(WEB3FORMS_KEY && !WEB3FORMS_KEY.startsWith('YOUR_'));
 
 const esc = (s) => s.replace(/&(?![a-z#0-9]+;)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -58,6 +60,9 @@ function digestToHtml(name) {
   raw = deAI(raw);
   const lines = raw.split('\n').map(l => l.trim());
   const noise = /^(Home\b|Research$|.*Research Study$|.*Liquid Template|Paste into|.*font-primary|\{[%{]|.*settings\.|^[a-z0-9_]{10,}$)/i;
+  // Shopify section schema can remain at the end of an extracted digest. It is
+  // source metadata, not study copy, and must never be rendered as paragraphs.
+  const sectionSchema = /^"(?:name|tag|class|settings|presets)"\s*:/i;
   const metaKeys = /^(Locations?|Scope|Timeline|Study Type|Research Area|Status|Partnership Type|Region)\s*[:\-]/i;
 
   let intro = '', title = '';
@@ -75,7 +80,7 @@ function digestToHtml(name) {
     // body begins at first "## " after intro, or at Executive/Research Overview
     if (!started && (ln.startsWith('## ') || /^(Executive Summary|Research Overview)$/i.test(ln))) started = true;
     if (!started) continue;
-    if (noise.test(ln)) continue;
+    if (noise.test(ln) || sectionSchema.test(ln)) continue;
     body.push(ln);
   }
 
@@ -233,7 +238,7 @@ function footer() {
           <li><a href="mailto:contact@championspharmaceuticals.com">contact@championspharmaceuticals.com</a></li>
           <li><a href="tel:+2347070320052">+234 707 032 0052</a></li>
           <li>Lagos, Nigeria</li>
-          <li><a href="contact.html">Enquiry form</a></li>
+          <li><a href="contact.html">Contact details</a></li>
         </ul>
       </div>
     </div>
@@ -769,6 +774,7 @@ const products = pbanner({
   <div class="wrap">
     <div class="section-head"><span class="eyebrow">Product categories</span><h2>Ten therapeutic categories</h2><p class="lead">All products listed are registered with NAFDAC and comply with Nigerian pharmaceutical regulations. This information is intended for healthcare professionals and institutional partners.</p></div>
     <div class="field" style="max-width:440px;margin-bottom:1.6rem"><label for="product-filter">Find a product</label><input id="product-filter" type="search" placeholder="Search by name or category…" autocomplete="off" spellcheck="false"></div>
+    <p id="product-empty" role="status" hidden>No matching products found. Try another name or category.</p>
     <div class="portfolio">${portfolio}</div>
     <div class="prose" style="max-width:100%;margin-top:2rem"><div class="callout"><p><strong>For healthcare professionals &amp; institutions.</strong> Product availability, pack sizes and specifications are provided on enquiry. All items are NAFDAC-registered and distributed in compliance with Nigerian pharmaceutical regulation.</p></div></div>
     <p style="margin-top:1.6rem"><a href="contact.html" class="btn btn-primary">Request product information ${ic.arrow}</a></p>
@@ -805,8 +811,9 @@ const contact = pbanner({
         </ul>
       </div>
       <div class="card" style="padding:2rem">
-        <form id="enquiry-form" class="form-grid" novalidate>
-          <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY">
+        <p class="form-unavailable"${FORMS_READY ? ' hidden' : ''}>The online enquiry form is currently unavailable. Please <a href="mailto:contact@championspharmaceuticals.com?subject=Website%20enquiry">email our team</a> directly.</p>
+        <form id="enquiry-form" class="form-grid" novalidate${FORMS_READY ? '' : ' hidden'}>
+          <input type="hidden" name="access_key" value="${esc(WEB3FORMS_KEY)}">
           <input type="hidden" name="subject" value="New website enquiry — Champions Pharmaceuticals">
           <input type="hidden" name="from_name" value="Champions Pharmaceuticals website">
           <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -816,7 +823,7 @@ const contact = pbanner({
           <div class="field"><label for="f-type">Enquiry type</label><select id="f-type" name="type"><option>Partnership</option><option>Research collaboration</option><option>Product information</option><option>Distribution</option><option>General</option></select></div>
           <div class="field"><label for="f-msg">Message</label><textarea id="f-msg" name="message" rows="4" required></textarea></div>
           <button class="btn btn-primary btn-lg" type="submit">Send enquiry ${ic.arrow}</button>
-          <p class="form-note" role="status" aria-live="polite" data-local="Thank you. Your enquiry has been recorded. Connect the email service to start receiving submissions." data-success="Thank you. Your enquiry has been sent; our team will be in touch.">Thank you. Your enquiry has been recorded.</p>
+          <p class="form-note" role="status" aria-live="polite" data-success="Thank you. Your enquiry has been sent; our team will be in touch."></p>
         </form>
       </div>
     </div>
@@ -899,8 +906,9 @@ const careers = pbanner({
         <span class="eyebrow">Register your interest</span>
         <h2>Send us your CV</h2>
         <p class="lead">We are always glad to hear from talented people. Share a little about yourself and attach your CV, and our team will reach out when a suitable role opens.</p>
-        <form id="careers-form" class="form-grid" enctype="multipart/form-data" novalidate>
-          <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY">
+        <p class="form-unavailable"${FORMS_READY ? ' hidden' : ''}>The online CV form is currently unavailable. Please <a href="mailto:contact@championspharmaceuticals.com?subject=Careers%20enquiry">email our careers team</a> and attach your CV in your email.</p>
+        <form id="careers-form" class="form-grid" enctype="multipart/form-data" novalidate${FORMS_READY ? '' : ' hidden'}>
+          <input type="hidden" name="access_key" value="${esc(WEB3FORMS_KEY)}">
           <input type="hidden" name="subject" value="New career application — Champions Pharmaceuticals website">
           <input type="hidden" name="from_name" value="Champions Pharmaceuticals careers">
           <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -908,10 +916,10 @@ const careers = pbanner({
           <div class="field"><label for="c-email">Email</label><input id="c-email" name="email" type="email" inputmode="email" autocomplete="email" spellcheck="false" required></div>
           <div class="field"><label for="c-phone">Phone</label><input id="c-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"></div>
           <div class="field"><label for="c-area">Area of interest</label><select id="c-area" name="area"><option>Distribution &amp; Supply Chain</option><option>Research &amp; Development</option><option>Clinical &amp; Regulatory Affairs</option><option>Community Health &amp; Field Programmes</option><option>Operations &amp; Quality</option><option>Corporate, Finance &amp; Administration</option><option>Other</option></select></div>
-          <div class="field"><label for="c-cv">Your CV <span class="muted" style="font-weight:400">(PDF or Word, up to 5&nbsp;MB)</span></label><input id="c-cv" name="attachment" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></div>
+          <div class="field"><label for="c-cv">Your CV <span class="muted" style="font-weight:400">(PDF or Word, up to 5&nbsp;MB)</span></label><input id="c-cv" name="attachment" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required></div>
           <div class="field"><label for="c-msg">A short message</label><textarea id="c-msg" name="message" rows="4" placeholder="Tell us a little about your experience and what you are looking for…"></textarea></div>
           <button class="btn btn-primary btn-lg" type="submit">Submit application ${ic.arrow}</button>
-          <p class="form-note" role="status" aria-live="polite" data-local="Thank you. Your application has been received. Connect the email service to start receiving CVs by email." data-success="Thank you. Your application and CV have been sent; our team will be in touch.">Thank you. Your application has been received.</p>
+          <p class="form-note" role="status" aria-live="polite" data-success="Thank you. Your application and CV have been sent; our team will be in touch."></p>
         </form>
       </div>
     </div>

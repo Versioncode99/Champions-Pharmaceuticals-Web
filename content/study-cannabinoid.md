@@ -544,9 +544,3 @@ Seek Professional Care: Individuals experiencing medical conditions should seek 
 Research Purpose: This documentation serves to inform evidence-based policy discussions, support healthcare provider education, advance scientific understanding, and preserve traditional knowledge documentation. It is not intended to facilitate illegal activities or circumvent regulatory frameworks.
 No Liability: Champions Pharmaceuticals, research contributors, and affiliated individuals or organizations assume no liability for any actions taken based on information in this documentation. Users assume all responsibility and risk for their own decisions and actions.
 Last Updated: February 2026
-"name": "Cannabinoid Study",
-"tag": "section",
-"class": "champions-research-study-section",
-"settings": [],
-"presets": [
-"name": "Cannabinoid Research Study"

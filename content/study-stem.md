@@ -649,9 +649,3 @@ Seek Professional Evaluation: Individuals or families considering stem cell ther
 International Referral Process: International partnerships (Polali UK, Lithuanian centers) facilitate clinical evaluation and treatment access but require formal medical referral, patient eligibility screening, and institutional clinical assessment. Not all patients are candidates for these therapies.
 No Liability: Champions Pharmaceuticals, research contributors, partner organizations, and affiliated individuals assume no liability for any clinical decisions, treatment outcomes, or consequences arising from information in this documentation. Users and patients assume all responsibility for their own medical decisions and outcomes.
 Last Updated: February 2026
-"name": "Stem Cell Research",
-"tag": "section",
-"class": "champions-research-study-section",
-"settings": [],
-"presets": [
-"name": "Stem Cell Therapy Research Study"

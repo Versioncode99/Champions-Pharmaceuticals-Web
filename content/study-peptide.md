@@ -228,9 +228,3 @@ References
 - University of California, Riverside. MYC-Inhibiting Bicyclic Peptide Discovery. Journal of the American Chemical Society. 2024. DOI: 10.1021/jacs.3c00000
 ## Important Medical Disclaimer
 This document is provided for educational and informational purposes only and does not constitute medical advice, diagnosis, or treatment recommendations. Bioactive peptide therapeutics referenced in this document span a wide spectrum of regulatory status: from fully FDA/MHRA-approved agents (Lutathera™, Pluvicto™, GnRH analogues, GLP-1 agonists) to investigational clinical trial candidates (PDCs, neoantigen vaccines) and preclinical compounds lacking approved human clinical indications (BPC-157, TB-500, many ACPs). Patients should not initiate, discontinue, or modify any therapeutic regimen based on information in this document without consulting a qualified medical professional. All treatment decisions for cancer and other medical conditions should be made by appropriately qualified specialist teams with access to the patient's full clinical history. Champions Pharmaceuticals Limited does not prescribe medications and accepts no liability for clinical decisions made on the basis of this research synthesis.
-"name": "Peptide Research",
-"tag": "section",
-"class": "champions-research-study-section",
-"settings": [],
-"presets": [
-"name": "Bioactive Peptide Therapeutics Research Study"

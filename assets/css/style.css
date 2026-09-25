@@ -176,6 +176,7 @@ section{padding:clamp(56px,8vw,104px) 0}
 
 /* Split (image + text) */
 .split{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(2rem,5vw,4.5rem);align-items:center}
+.split>*{min-width:0}
 .split.rev .split-media{order:2}
 .split-media img{border-radius:var(--radius);width:100%;aspect-ratio:4/3;object-fit:cover;box-shadow:var(--shadow)}
 
@@ -183,7 +184,7 @@ section{padding:clamp(56px,8vw,104px) 0}
 .flist{list-style:none;margin-top:1.2rem}
 .flist li{position:relative;padding:.6rem 0 .6rem 2rem;border-bottom:1px solid var(--line);color:var(--ink-2)}
 .flist li:last-child{border-bottom:0}
-.flist li,.flist a,.site-footer li,.site-footer a{overflow-wrap:break-word}
+.flist li,.flist a,.site-footer li,.site-footer a{overflow-wrap:anywhere}
 .flist li::before{content:"";position:absolute;left:0;top:1.05rem;width:15px;height:15px;border-radius:50%;background:var(--green-tint);box-shadow:inset 0 0 0 4px var(--green)}
 
 /* Partner logo wall */
@@ -233,7 +234,7 @@ section{padding:clamp(56px,8vw,104px) 0}
 .prose ul{list-style:none;margin:0 0 1.4rem;color:var(--ink-2)}
 .prose ul li{position:relative;padding:.15rem 0 .15rem 1.5rem;margin-bottom:.55rem}
 .prose ul li::before{content:"";position:absolute;left:0;top:.72em;width:7px;height:7px;border-radius:50%;background:var(--green)}
-.prose .callout{background:var(--green-tint-2);border-left:3px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:1.2rem 1.4rem;margin:1.6rem 0}
+.prose .callout{background:var(--green-tint-2);border-left:3px solid var(--green);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:1.2rem 1.4rem;margin:1.6rem 0;overflow-wrap:anywhere}
 .prose .callout p:last-child{margin:0}
 
 /* Stat band */
@@ -269,6 +270,8 @@ section{padding:clamp(56px,8vw,104px) 0}
 .field input,.field select,.field textarea{width:100%;padding:.8rem 1rem;border:1px solid var(--line-strong);border-radius:var(--radius-sm);font:inherit;font-size:.98rem;color:var(--ink);background:#fff;transition:border-color .18s var(--ease)}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-tint)}
 .form-note{display:none;margin-top:1rem;padding:.9rem 1.1rem;background:var(--green-tint);border-radius:var(--radius-sm);color:var(--green-900);font-weight:500;font-size:.95rem}
+.form-unavailable{padding:1.2rem;background:var(--green-tint-2);border-left:4px solid var(--green);border-radius:var(--radius-sm);color:var(--ink-2)}
+[hidden]{display:none!important}
 .hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .field input[type=file]{padding:.55rem .7rem;background:var(--paper-2);cursor:pointer;font-size:.92rem}
 .field input[type=file]::file-selector-button{font:inherit;font-weight:600;font-size:.88rem;margin-right:.8rem;padding:.5rem .9rem;border:0;border-radius:var(--radius-sm);background:var(--green-tint);color:var(--green-900);cursor:pointer;transition:background .18s var(--ease)}
@@ -306,12 +309,13 @@ html.js body{animation:pagefade .32s var(--ease) both}
   .partner{grid-template-columns:1fr}
   .partner .plogo{max-width:150px}
 }
-@media(max-width:680px){
-  .nav-links{position:fixed;inset:74px 0 auto 0;flex-direction:column;background:#fff;border-bottom:1px solid var(--line);padding:1.2rem 28px;gap:1.1rem;transform:translateY(-120%);transition:transform .3s var(--ease);box-shadow:var(--shadow)}
-  .nav-links.open{transform:none}
+@media(max-width:1100px){
+  .nav-links{position:fixed;inset:74px 0 auto 0;flex-direction:column;background:#fff;border-bottom:1px solid var(--line);padding:1.2rem 28px;gap:1.1rem;transform:translateY(-120%);visibility:hidden;pointer-events:none;transition:transform .3s var(--ease),visibility .3s;box-shadow:var(--shadow)}
+  .nav-links.open{transform:none;visibility:visible;pointer-events:auto}
   .nav-toggle{display:block}
-  .nav-flag{display:none}
-  .nav-cta .btn-primary{display:none}
+  .nav-flag,.nav-cta .btn-primary{display:none}
+}
+@media(max-width:680px){
   .brand-word .bw1{font-size:1.1rem}
   .brand-logo{height:40px}
   .g2,.g4,.g3{grid-template-columns:1fr}

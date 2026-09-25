@@ -430,9 +430,3 @@ No Treatment Guarantee: Documentation of clinical trial results does not guarant
 Seek Professional Evaluation: Individuals and families considering any SCD treatment should consult qualified hematologists who can evaluate disease severity, treatment eligibility, and individual risk-benefit profiles. International referral programs require formal medical evaluation and physician referral.
 No Liability: Champions Pharmaceuticals, research contributors, partner organizations, and affiliated individuals assume no liability for any clinical decisions or treatment outcomes arising from information in this documentation.
 Last Updated: February 2026
-"name": "Sickle Cell Research",
-"tag": "section",
-"class": "champions-research-study-section",
-"settings": [],
-"presets": [
-"name": "Sickle Cell Disease Research Study"

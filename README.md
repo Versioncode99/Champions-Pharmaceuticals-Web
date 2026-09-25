@@ -33,7 +33,7 @@ CNAME                 Custom domain for Cloudflare/GitHub Pages
 Connect this repo in Cloudflare Pages → Framework preset **None**, build command **(none)**, output directory **/** (root). The `CNAME` file targets `www.championspharmaceuticals.com`.
 
 ## To do before go-live
-- **Forms (contact + careers CV upload):** both are wired for **Web3Forms**, which handles file attachments. Create one free access key for `contact@championspharmaceuticals.com` at https://web3forms.com, then replace `YOUR_WEB3FORMS_ACCESS_KEY` in `build.mjs` (two places: the contact `#enquiry-form` and the careers `#careers-form`) and run `node build.mjs`. Until a real key is set, submissions show a local confirmation only (no email sent). The careers form accepts a CV (PDF/Word, ≤5&nbsp;MB) which Web3Forms emails as an attachment.
+- **Forms (contact + careers CV upload):** both are wired for **Web3Forms**. Until an access key is configured, both forms are hidden and visitors are directed to email the team, so no enquiry or CV is falsely marked as received. To enable them, create an access key for contact@championspharmaceuticals.com at https://web3forms.com, set WEB3FORMS_ACCESS_KEY in the build environment, run node build.mjs, and deploy the generated HTML. If Cloudflare Pages builds from Git, set its build command to node build.mjs before using a Pages environment variable. The careers form accepts PDF or Word CVs up to 5 MB once enabled.
 - **Logo:** the header/footer use the transparent wordmark `logo-mark.png`.
 
 ## Images
